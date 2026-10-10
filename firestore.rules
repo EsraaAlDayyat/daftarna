@@ -1,0 +1,132 @@
+rules_version = '2';
+
+// Security rules. Each user can only read transactions they are a party to,
+// and transactions are append-only (no updates, no deletes).
+// Identity is the phone number verified by SMS (request.auth.token.phone_number).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.phone_number is string;
+    }
+    function me() { return request.auth.token.phone_number; }
+    function isPhone(p) { return p is string && p.matches('^[+][1-9][0-9]{7,14}$'); }
+    function validName(n) { return n is string && n.size() > 0 && n.size() <= 40; }
+    function path(p) { return /databases/$(database)/documents/$(p); }
+
+    // ───── Profile ─────
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['phone', 'name'])
+        && request.resource.data.phone == me()
+        && validName(request.resource.data.name);
+
+      // My contacts (names I chose). Private to me.
+      match /contacts/{phone} {
+        allow read, delete: if signedIn() && request.auth.uid == uid;
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && isPhone(phone)
+          && request.resource.data.keys().hasOnly(['phone', 'name'])
+          && request.resource.data.phone == phone
+          && validName(request.resource.data.name);
+      }
+
+      // Push notification tokens
+      match /tokens/{t} {
+        allow read, delete: if signedIn() && request.auth.uid == uid;
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['token', 'createdAt'])
+          && request.resource.data.token is string
+          && request.resource.data.token.size() < 400;
+      }
+    }
+
+    // ───── Phone directory: who has the app ─────
+    // Lookup of a single number (get) only. Listing the directory is denied.
+    match /phones/{phone} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update: if signedIn() && phone == me()
+        && request.resource.data.keys().hasOnly(['uid', 'name'])
+        && request.resource.data.uid == request.auth.uid
+        && validName(request.resource.data.name);
+      allow delete: if false;
+    }
+
+    // ───── Transactions ─────
+    match /txns/{id} {
+      allow read: if signedIn() && me() in resource.data.parties;
+      allow update, delete: if false;
+      allow create: if signedIn() && validTxn(request.resource.data) && (
+        // Regular entry: I must be one of the two parties
+        (me() in request.resource.data.parties
+          && request.resource.data.kind in ['lend', 'paidFor', 'repay', 'settle'])
+        // Bill share: must match the bill written in the same batch
+        || (request.resource.data.kind == 'split' && splitOk(request.resource.data))
+        // Reversal: only of an entry I created, and only once
+        || (request.resource.data.kind == 'reversal' && reversalOk(request.resource.data))
+      );
+    }
+
+    function validTxn(d) {
+      return d.keys().hasAll(['creditor', 'debtor', 'parties', 'amount', 'kind', 'note', 'createdBy', 'createdByName', 'createdAt'])
+        && d.keys().hasOnly(['creditor', 'debtor', 'parties', 'amount', 'kind', 'note', 'createdBy', 'createdByName', 'createdAt', 'billId', 'reverses'])
+        && isPhone(d.creditor) && isPhone(d.debtor) && d.creditor != d.debtor
+        && d.parties == [d.creditor, d.debtor]
+        && d.amount is int && d.amount > 0 && d.amount <= 100000000
+        && d.note is string && d.note.size() <= 120
+        && d.createdBy == me()
+        && d.createdByName is string && d.createdByName.size() <= 40
+        && d.createdAt == request.time
+        && (d.kind == 'split') == ('billId' in d)
+        && (d.kind == 'reversal') == ('reverses' in d);
+    }
+
+    function splitOk(d) {
+      let bill = getAfter(path('bills/' + d.billId)).data;
+      return bill.createdBy == me()
+        && bill.createdAt == request.time
+        && d.creditor == bill.payer
+        && bill.shares[d.debtor] == d.amount;
+    }
+
+    function reversalOk(d) {
+      let orig = get(path('txns/' + d.reverses)).data;
+      return orig.createdBy == me()
+        && orig.kind != 'reversal'
+        && d.creditor == orig.debtor && d.debtor == orig.creditor
+        && d.amount == orig.amount
+        // Reversal marker: written in the same batch, must not exist before
+        && !exists(path('reversals/' + d.reverses))
+        && existsAfter(path('reversals/' + d.reverses));
+    }
+
+    match /reversals/{origId} {
+      allow read: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['by'])
+        && request.resource.data.by == me();
+      allow update, delete: if false;
+    }
+
+    // ───── Bills ─────
+    match /bills/{id} {
+      allow read: if signedIn() && me() in resource.data.parties;
+      allow create: if signedIn()
+        && request.resource.data.createdBy == me()
+        && request.resource.data.createdAt == request.time
+        && me() in request.resource.data.parties
+        && request.resource.data.payer in request.resource.data.parties
+        && request.resource.data.parties.size() <= 30
+        && request.resource.data.total is int
+        && request.resource.data.restaurant is string && request.resource.data.restaurant.size() <= 60;
+      allow update, delete: if false;
+    }
+
+    // Receipt-reading usage counters (server only)
+    match /usage/{doc} {
+      allow read, write: if false;
+    }
+  }
+}
