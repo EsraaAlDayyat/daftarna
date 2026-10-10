@@ -14,6 +14,15 @@ jobs:
       - name: Unit tests (app logic + Cloud Functions)
         run: npm test
       - name: Security rules tests (Firestore emulator)
-        run: npm run test:rules
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:rules 2>&1 | tee rules-tests.log
+      - name: Show security rules test output on failure
+        if: failure()
+        shell: bash
+        run: |
+          msg=$(tail -n 60 rules-tests.log | sed -e 's/\x1b\[[0-9;]*m//g' | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')
+          echo "::error title=Security rules tests failed::${msg}"
       - name: Typecheck and build
         run: npm run typecheck && npm run build
