@@ -12,7 +12,6 @@ service cloud.firestore {
     function me() { return request.auth.token.phone_number; }
     function isPhone(p) { return p is string && p.matches('^[+][1-9][0-9]{7,14}$'); }
     function validName(n) { return n is string && n.size() > 0 && n.size() <= 40; }
-    function path(p) { return /databases/$(database)/documents/$(p); }
 
     // ───── Profile ─────
     match /users/{uid} {
@@ -84,7 +83,7 @@ service cloud.firestore {
     }
 
     function splitOk(d) {
-      let bill = getAfter(path('bills/' + d.billId)).data;
+      let bill = getAfter(/databases/$(database)/documents/bills/$(d.billId)).data;
       return bill.createdBy == me()
         && bill.createdAt == request.time
         && d.creditor == bill.payer
@@ -92,14 +91,14 @@ service cloud.firestore {
     }
 
     function reversalOk(d) {
-      let orig = get(path('txns/' + d.reverses)).data;
+      let orig = get(/databases/$(database)/documents/txns/$(d.reverses)).data;
       return orig.createdBy == me()
         && orig.kind != 'reversal'
         && d.creditor == orig.debtor && d.debtor == orig.creditor
         && d.amount == orig.amount
         // Reversal marker: written in the same batch, must not exist before
-        && !exists(path('reversals/' + d.reverses))
-        && existsAfter(path('reversals/' + d.reverses));
+        && !exists(/databases/$(database)/documents/reversals/$(d.reverses))
+        && existsAfter(/databases/$(database)/documents/reversals/$(d.reverses));
     }
 
     match /reversals/{origId} {
