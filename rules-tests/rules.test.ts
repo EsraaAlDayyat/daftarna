@@ -67,21 +67,23 @@ describe("transactions", () => {
     await setDoc(doc(as("s", S), "txns/t1"), txn());
     const rev = txn({ creditor: A, debtor: S, parties: [A, S], kind: "reversal", reverses: "t1" });
     // Ahmad didn't create it
-    const ba = writeBatch(as("a", A));
-    ba.set(doc(as("a", A), "txns/r0"), { ...rev, createdBy: A, createdByName: "أحمد" });
-    ba.set(doc(as("a", A), "reversals/t1"), { by: A });
+    const dbA = as("a", A);
+    const ba = writeBatch(dbA);
+    ba.set(doc(dbA, "txns/r0"), { ...rev, createdBy: A, createdByName: "أحمد" });
+    ba.set(doc(dbA, "reversals/t1"), { by: A });
     await assertFails(ba.commit());
     // Missing the reversal marker
     await assertFails(setDoc(doc(as("s", S), "txns/r1"), rev));
     // Valid
-    const b = writeBatch(as("s", S));
-    b.set(doc(as("s", S), "txns/r2"), rev);
-    b.set(doc(as("s", S), "reversals/t1"), { by: S });
+    const dbS = as("s", S);
+    const b = writeBatch(dbS);
+    b.set(doc(dbS, "txns/r2"), rev);
+    b.set(doc(dbS, "reversals/t1"), { by: S });
     await assertSucceeds(b.commit());
     // A second reversal is rejected
-    const b2 = writeBatch(as("s", S));
-    b2.set(doc(as("s", S), "txns/r3"), rev);
-    b2.set(doc(as("s", S), "reversals/t1"), { by: S });
+    const b2 = writeBatch(dbS);
+    b2.set(doc(dbS, "txns/r3"), rev);
+    b2.set(doc(dbS, "reversals/t1"), { by: S });
     await assertFails(b2.commit());
   });
 });
@@ -93,6 +95,11 @@ describe("bills", () => {
   });
   const split = (debtor: string, amount: number, o: Record<string, unknown> = {}) =>
     txn({ creditor: S, debtor, parties: [S, debtor], amount, kind: "split", billId: "b1", ...o });
+
+  it("a valid bill can be created on its own", async () => {
+    await assertSucceeds(setDoc(doc(as("s", S), "bills/b0"), bill()));
+    await assertFails(setDoc(doc(as("s", S), "bills/b1"), bill({ createdBy: A })));
+  });
 
   it("shares must match the bill", async () => {
     const db = as("s", S);
