@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+functions/lib/
+*.tsbuildinfo
+
+# Environment and secrets (only the .example templates are committed)
+.env
+.env.*
+!.env.example
+functions/.env
+functions/.env.*
+functions/.secret.local
+!functions/.env.example
+!functions/.secret.local.example
+.runtimeconfig.json
+*.pem
+*.key
+service-account*.json
+
+# Firebase local state and emulator logs
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+database-debug.log*
+pubsub-debug.log*
+
+# Test output
+e2e/shots/
+coverage/
+test-results/
+playwright-report/
+
+# Logs and temp files
+*.log
+npm-debug.log*
+*.tmp
+*.swp
+.cache/
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local demo bundle (built for sharing, not source)
+daftarna-demo.html
