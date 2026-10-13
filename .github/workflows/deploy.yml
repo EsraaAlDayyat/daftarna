@@ -69,7 +69,18 @@ jobs:
 
       - name: Deploy hosting, Firestore rules and Cloud Functions
         if: env.HAS_CREDENTIALS == 'true'
-        run: npx firebase deploy --only hosting,firestore,functions --force --non-interactive
+        # The first deploy can fail while Google enables APIs and grants service agents,
+        # so try once more after a short wait.
+        run: |
+          set -o pipefail
+          deploy() { npx firebase deploy --only hosting,firestore,functions --force --non-interactive 2>&1 | tee -a deploy.log; }
+          deploy || { echo "Retrying in 90s..."; sleep 90; deploy; }
+
+      - name: Show deploy errors
+        if: failure() && env.HAS_CREDENTIALS == 'true'
+        run: |
+          grep -iE "error|denied|permission|failed|enable" deploy.log | grep -v "^i " | tail -25 | sed 's/%/%25/g' > errs.txt || true
+          echo "::error title=firebase deploy::$(sed ':a;N;$!ba;s/\n/%0A/g' errs.txt)"
 
       - name: Remove credentials file
         if: always()
