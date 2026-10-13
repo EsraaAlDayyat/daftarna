@@ -73,6 +73,8 @@ jobs:
         # so try once more after a short wait.
         run: |
           set -o pipefail
+          # Non-secret function settings (e.g. RECEIPT_MODEL) come from the committed template
+          grep -E '^[A-Z_]+=' functions/.env.example > functions/.env
           deploy() { npx firebase deploy --only hosting,firestore,functions --force --non-interactive 2>&1 | tee -a deploy.log; }
           deploy || { echo "Retrying in 90s..."; sleep 90; deploy; }
 
