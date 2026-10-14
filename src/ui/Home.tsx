@@ -40,6 +40,7 @@ export function Home() {
     try { return localStorage.getItem(TAB_KEY) === "accounts" ? "accounts" : "groups"; } catch { return "groups"; }
   });
   const setTab = (x: Tab) => { setTabState(x); try { localStorage.setItem(TAB_KEY, x); } catch { /* */ } window.scrollTo(0, 0); };
+  const [accPart, setAccPart] = useState<"in" | "out" | null>("in");
   const [push, setPush] = useState<PushState | null>(null);
   useEffect(() => { backend.pushState().then(setPush).catch(() => setPush("unsupported")); }, [backend, open]);
 
@@ -100,7 +101,7 @@ export function Home() {
             </div>
           </section>
         ) : (
-          <Accounts friends={friends} onFriend={openFriend} onAdd={() => setOpen({ kind: "add" })} />
+          <Accounts friends={friends} onFriend={openFriend} onAdd={() => setOpen({ kind: "add" })} part={accPart} setPart={setAccPart} />
         )}
       </div>
 
@@ -118,7 +119,11 @@ export function Home() {
         <AddFriendSheet groupId={open.groupId} onClose={back}
           onAdded={(p) => setOpen(open.groupId ? { kind: "group", id: open.groupId } : { kind: "friend", phone: p })} />
       )}
-      {open?.kind === "split" && <SplitFlow groupId={open.groupId} onClose={back} />}
+      {open?.kind === "split" && (
+        <SplitFlow groupId={open.groupId} onClose={back}
+          // After a bill, go straight to "settle my accounts" with the right list open
+          onDone={(iPaid) => { setOpen(null); setAccPart(iPaid ? "in" : "out"); setTab("accounts"); }} />
+      )}
       {open?.kind === "settings" && <SettingsSheet onClose={close} />}
       {open?.kind === "newGroup" && <NewGroupSheet onClose={close} onCreated={openGroup} />}
       {open?.kind === "join" && <JoinSheet id={open.id} onClose={close} onJoined={openGroup} />}
@@ -133,9 +138,11 @@ export function Home() {
 }
 
 /** "Settle my accounts" tab: what people owe me, what I owe, and who exactly. */
-function Accounts({ friends, onFriend, onAdd }: { friends: Friend[]; onFriend: (p: Phone) => void; onAdd: () => void }) {
+function Accounts({ friends, onFriend, onAdd, part: openPart, setPart: setOpenPart }: {
+  friends: Friend[]; onFriend: (p: Phone) => void; onAdd: () => void;
+  part: "in" | "out" | null; setPart: (p: "in" | "out" | null) => void;
+}) {
   const t = useT();
-  const [openPart, setOpenPart] = useState<"in" | "out" | null>("in");
   const theyOwe = friends.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
   const iOwe = friends.filter((f) => f.balance < 0).sort((a, b) => a.balance - b.balance);
   const rest = friends.filter((f) => f.balance === 0);

@@ -19,7 +19,8 @@ type ExtrasStr = Record<keyof BillExtras, string>;
 
 const STEPS: Step[] = ["items", "people", "assign", "summary"];
 
-export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?: string }) {
+/** onDone runs after a bill is saved and the person taps OK; iPaid = I was the payer. */
+export function SplitFlow({ onClose, onDone, groupId }: { onClose: () => void; onDone?: (iPaid: boolean) => void; groupId?: string }) {
   const { backend, me, myName, friends, toast, registered, txns, groups } = useApp();
   const group = groups.find((g) => g.id === groupId);
   const { t, dialect } = useDialect();
@@ -358,7 +359,7 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
               })}
             </div>
           )}
-          <div className="sticky-foot"><button className="btn big" onClick={onClose}>{t.ok}</button></div>
+          <div className="sticky-foot"><button className="btn big" onClick={() => (onDone ? onDone(payer === me) : onClose())}>{t.seeAccounts}</button></div>
         </>
       )}
     </Sheet>
