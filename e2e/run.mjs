@@ -80,11 +80,13 @@ await sara.getByRole("button", { name: "تأكيد" }).click();
 await sara.getByLabel("اسمك").fill("سارة");
 await shot(sara, "name");
 await sara.getByRole("button", { name: "يلا نبلش" }).click();
-await sara.getByText("لسا ما في حدا").waitFor();
+await sara.locator(".gtile.new").waitFor();
 await shot(sara, "empty-home");
 check(true, "sign-in flow");
 
 // ───────── Add friends and a manual entry ─────────
+const tab = (p, name) => p.getByRole("navigation").getByRole("button", { name }).click();
+await tab(sara, /تصفية حساباتي/);
 for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3333"]]) {
   await sara.getByRole("button", { name: "صاحب", exact: true }).first().click();
   await sara.getByLabel("الاسم").fill(name);
@@ -106,8 +108,10 @@ for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3
 }
 await sara.getByRole("button", { name: "سكّر" }).click();
 await shot(sara, "home-two-friends");
-const ahmadRow = await text(sara, ".row:has-text('أحمد') .bal");
-check(ahmadRow.includes("١٠ د.أ") && ahmadRow.includes("إلك عنده"), "Ahmad's balance on the home list", `Ahmad's row: ${ahmadRow}`);
+const ahmadRow = await text(sara, ".acc.in .row:has-text('أحمد') .bal");
+check(ahmadRow.includes("١٠ د.أ"), "Ahmad is under 'owed to me' with his amount", `Ahmad's row: ${ahmadRow}`);
+check((await text(sara, ".acc.in .acc-sum")).includes("١٠"), "total owed to me");
+await tab(sara, /جروباتي/);
 
 // ───────── Create a group and add both friends ─────────
 await sara.locator(".gtile.new").click();
@@ -197,10 +201,14 @@ await ahmad.getByRole("button", { name: "الإعدادات" }).click();
 await ahmad.getByRole("button", { name: "اطلع من الحساب" }).click();
 await signIn(ahmad, "+962 78 222 2222", "أحمد");
 await shot(ahmad, "ahmad-home");
-const saraForAhmad = await text(ahmad, ".row:has-text('سارة')").catch(() => "");
-check(saraForAhmad.includes("عليك إله"), "Ahmad sees the same entries from his side", `Ahmad sees: ${saraForAhmad}`);
-check((await text(ahmad, ".row:has-text('لينا') .bal")).includes("خالص"), "Ahmad sees Lina from the group, but not her entries with Sara");
+await tab(ahmad, /جروباتي/);
 check((await ahmad.locator(".gtile", { hasText: "الشلة" }).count()) === 1, "Ahmad sees the group he was added to");
+await tab(ahmad, /تصفية حساباتي/);
+await ahmad.getByRole("button", { name: /عليّ للناس/ }).click();
+await shot(ahmad, "ahmad-accounts");
+const saraForAhmad = await text(ahmad, ".acc.out .row:has-text('سارة')").catch(() => "");
+check(saraForAhmad.length > 0, "Ahmad sees Sara under 'I owe'", `Ahmad sees: ${saraForAhmad}`);
+check((await ahmad.locator(".acc .row:has-text('لينا')").count()) === 0, "Ahmad sees Lina from the group, but not her entries with Sara");
 
 await ahmad.locator(".row:has-text('سارة')").click();
 await shot(ahmad, "ahmad-friend");
@@ -213,7 +221,8 @@ await sara.bringToFront();
 const notified = await sara.locator(".toast.push").first().waitFor({ timeout: 4000 }).then(() => true, () => false);
 check(notified, "Sara gets a notification when Ahmad settles");
 await shot(sara, "sara-notified");
-check((await text(sara, ".row:has-text('أحمد') .bal")).includes("خالص"), "Ahmad's balance shows as settled for Sara");
+await tab(sara, /تصفية حساباتي/);
+check((await sara.locator(".acc .row:has-text('أحمد')").count()) === 0, "once settled, Ahmad leaves Sara's owed lists");
 
 // ───────── Reverse an entry ─────────
 await sara.locator(".row:has-text('لينا')").click();
@@ -232,6 +241,7 @@ await shot(sara, "dark-home");
 await sara.locator(".row").first().click();
 await shot(sara, "dark-friend");
 await sara.getByRole("button", { name: "سكّر" }).click();
+await tab(sara, /جروباتي/);
 await sara.locator(".gtile", { hasText: "الشلة" }).click();
 await shot(sara, "dark-group");
 
