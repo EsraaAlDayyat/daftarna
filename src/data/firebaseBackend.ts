@@ -61,10 +61,17 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
         unsubProfile?.(); unsubProfile = null;
         if (!u || !u.phoneNumber) { me = null; cb(null); return; }
         me = { uid: u.uid, phone: u.phoneNumber };
+        // Open straight away with the name remembered on this device; the profile read can be slow
+        const nameKey = `daftarna-name-${u.uid}`;
+        let cached = "";
+        try { cached = localStorage.getItem(nameKey) ?? ""; } catch { /* */ }
+        if (cached) { myName = cached; cb({ phone: u.phoneNumber, name: cached }); }
         unsubProfile = onSnapshot(doc(db, "users", u.uid), (s) => {
           myName = (s.data()?.name as string) || "";
-          cb({ phone: u.phoneNumber!, name: myName || null });
-        }, () => cb({ phone: u.phoneNumber!, name: null }));
+          try { if (myName) localStorage.setItem(nameKey, myName); } catch { /* */ }
+          if (myName !== cached || !cached) cb({ phone: u.phoneNumber!, name: myName || null });
+          cached = myName;
+        }, () => { if (!cached) cb({ phone: u.phoneNumber!, name: null }); });
       });
       return () => { un(); unsubProfile?.(); };
     },

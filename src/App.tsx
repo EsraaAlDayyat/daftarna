@@ -38,7 +38,20 @@ export default function App() {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), push ? 5000 : 2200);
   }, []);
 
-  useEffect(() => { createBackend().then(setBackend); }, []);
+  // If start-up hangs or fails, show what went wrong instead of an endless spinner
+  const [bootErr, setBootErr] = useState<string | null>(null);
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const onErr = (e: ErrorEvent | PromiseRejectionEvent) => {
+      const r = "reason" in e ? e.reason : e.error ?? e.message;
+      setBootErr(String((r as Error)?.message ?? r));
+    };
+    window.addEventListener("error", onErr);
+    window.addEventListener("unhandledrejection", onErr);
+    const timer = setTimeout(() => setSlow(true), 10_000);
+    createBackend().then(setBackend).catch((e) => setBootErr(String(e?.message ?? e)));
+    return () => { clearTimeout(timer); window.removeEventListener("error", onErr); window.removeEventListener("unhandledrejection", onErr); };
+  }, []);
   useEffect(() => backend?.onAuth(setUser), [backend]);
 
   const me = user?.name ? user.phone : null;
@@ -102,7 +115,23 @@ export default function App() {
   );
 
   if (!backend || user === undefined) {
-    return <div className="center" style={{ minHeight: "100dvh", justifyContent: "center" }}><div className="spinner" /></div>;
+    const t = lang.t;
+    return (
+      <div className="center" style={{ minHeight: "100dvh", justifyContent: "center" }}>
+        {slow || bootErr ? (
+          <>
+            <div className="empty-emoji" aria-hidden="true">😕</div>
+            <h3 style={{ margin: 0 }}>{t.stuckTitle}</h3>
+            <p className="muted" style={{ margin: 0 }}>{t.stuckHint}</p>
+            <button className="btn big" onClick={() => location.reload()}>{t.retry}</button>
+            <a className="link-btn" href="/?demo">{t.openDemo}</a>
+            <small className="muted" dir="ltr" style={{ wordBreak: "break-all" }}>
+              {bootErr ?? `waiting: ${!backend ? "backend" : "auth"}`} · {navigator.onLine ? "online" : "offline"}
+            </small>
+          </>
+        ) : <div className="spinner" />}
+      </div>
+    );
   }
   return (
     <LangCtx.Provider value={lang}>

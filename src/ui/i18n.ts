@@ -256,6 +256,10 @@ const jo = {
   privacyText: "ما حدا بيشوف ديونك إلا الشخص اللي إله علاقة فيها.",
   signOut: "اطلع من الحساب",
   pushTitle: "دفترنا · إشعار جديد",
+  stuckTitle: "التطبيق ما فتح",
+  stuckHint: "تأكد إنك متصل بالنت وجرّب كمان مرة. إذا ضلت، صوّر هاي الشاشة وابعتها.",
+  retry: "جرّب كمان مرة",
+  openDemo: "أو افتح التجربة",
 };
 
 export type Strings = typeof jo;
@@ -500,6 +504,10 @@ const eg: Strings = {
   privacyText: "محدش بيشوف ديونك غير الشخص اللي ليه علاقة بيها.",
   signOut: "اخرج من الحساب",
   pushTitle: "دفترنا · إشعار جديد",
+  stuckTitle: "التطبيق ما فتحش",
+  stuckHint: "اتأكد إنك متوصل بالنت وجرّب تاني. لو فضلت كده، صوّر الشاشة دي وابعتها.",
+  retry: "جرّب تاني",
+  openDemo: "أو افتح التجربة",
 };
 
 export const STRINGS: Record<Dialect, Strings> = { jo, eg };
