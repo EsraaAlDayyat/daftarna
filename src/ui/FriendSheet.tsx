@@ -7,6 +7,7 @@ import { jod, parseJod } from "../core/money";
 import { displayPhone, waLink, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Sheet } from "./Sheet";
+import { Avatar } from "./Avatar";
 import { WhatsApp } from "./icons";
 import { balanceAfter } from "./model";
 import { dateLabel } from "./util";
@@ -94,7 +95,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
   const statement = waStatement(f.txns, me, f.name, myName);
 
   return (
-    <Sheet title={f.name} onClose={onClose} lead={<span className="av">{f.name.trim()[0] ?? "؟"}</span>}>
+    <Sheet title={f.name} onClose={onClose} lead={<Avatar name={f.name} id={phone} size={48} />}>
       <div className="muted" style={{ marginTop: -10, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
         <span dir="ltr">{displayPhone(phone)}</span>
         <span>{reg ? "· عنده التطبيق ✓" : reg === false ? "· ما عنده التطبيق" : ""}</span>

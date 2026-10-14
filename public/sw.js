@@ -1,5 +1,5 @@
 // Service worker: offline app shell, and push notifications while the app is closed.
-const CACHE = "daftarna-v1";
+const CACHE = "daftarna-v2";
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/manifest.webmanifest", "/icon-192.png"])));

@@ -7,6 +7,7 @@ import { normalizeReceipt } from "../core/receipt";
 import { billTotal, splitBill, validateSplit, type BillExtras, type BillItem } from "../core/split";
 import { useApp } from "./AppContext";
 import { Sheet } from "./Sheet";
+import { Avatar } from "./Avatar";
 import { Camera, ImageIc, Pen, WhatsApp } from "./icons";
 import { balanceAfter } from "./model";
 import { newId, shrinkImage } from "./util";
@@ -18,15 +19,17 @@ type ExtrasStr = Record<keyof BillExtras, string>;
 const STEPS: Step[] = ["items", "people", "assign", "summary"];
 const EXTRA_LABELS: Record<keyof BillExtras, string> = { tax: "ضريبة المبيعات", service: "خدمة", delivery: "توصيل", discount: "خصم" };
 
-export function SplitFlow({ onClose }: { onClose: () => void }) {
-  const { backend, me, myName, friends, toast, registered, txns } = useApp();
+export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?: string }) {
+  const { backend, me, myName, friends, toast, registered, txns, groups } = useApp();
+  const group = groups.find((g) => g.id === groupId);
   const [step, setStep] = useState<Step>("source");
   const [restaurant, setRestaurant] = useState("");
   const [items, setItems] = useState<EditItem[]>([]);
   const [extras, setExtras] = useState<ExtrasStr>({ tax: "", service: "", delivery: "", discount: "" });
   const [printedTotal, setPrintedTotal] = useState<Fils>(0);
   const [readNote, setReadNote] = useState("");
-  const [present, setPresent] = useState<Phone[]>([me]);
+  // In a group, everyone starts as present; untick whoever wasn't there
+  const [present, setPresent] = useState<Phone[]>(() => (group ? [me, ...group.members.filter((p) => p !== me)] : [me]));
   const [extraPeople, setExtraPeople] = useState<{ phone: Phone; name: string }[]>([]);
   const [eaters, setEaters] = useState<Record<string, Phone[]>>({});
   const [payer, setPayer] = useState<Phone>(me);
@@ -160,10 +163,11 @@ export function SplitFlow({ onClose }: { onClose: () => void }) {
     <div className="steps" aria-hidden="true">{STEPS.map((s, i) => <i key={s} className={i <= stepIdx ? "on" : ""} />)}</div>
   );
   const titles: Record<Step, string> = {
-    source: "قسّم فاتورة", reading: "عم نقرأ الفاتورة…", items: "الأصناف", people: "مين كان موجود؟",
+    source: group ? `قسّم فاتورة · ${group.name}` : "قسّم فاتورة", reading: "عم نقرأ الفاتورة…", items: "الأصناف", people: "مين كان موجود؟",
     assign: "مين أكل شو؟", summary: "الملخص", done: "انسجّلت ✓",
   };
-  const candidates: Phone[] = [me, ...friends.map((f) => f.phone), ...extraPeople.map((x) => x.phone).filter((p) => !friends.some((f) => f.phone === p))];
+  const pool = group ? group.members.filter((p) => p !== me) : friends.map((f) => f.phone);
+  const candidates: Phone[] = [me, ...pool, ...extraPeople.map((x) => x.phone).filter((p) => !pool.includes(p))];
 
   return (
     <Sheet title={titles[step]} onClose={onClose} full>
@@ -238,7 +242,7 @@ export function SplitFlow({ onClose }: { onClose: () => void }) {
 
       {step === "people" && (
         <>
-          <p className="muted" style={{ margin: 0 }}>اضغط على أسماء اللي كانوا معك.</p>
+          <p className="muted" style={{ margin: 0 }}>{group ? "كل الجروب مختار. شيل اللي ما كانوا معك." : "اضغط على أسماء اللي كانوا معك."}</p>
           <div className="people">
             {candidates.map((p) => (
               <button key={p} className="pchip" aria-pressed={present.includes(p)} onClick={() => togglePresent(p)}>{nameOf(p)}</button>
@@ -307,7 +311,7 @@ export function SplitFlow({ onClose }: { onClose: () => void }) {
               const v = preview.shares[p] ?? 0;
               return (
                 <div key={p} className="share-row">
-                  <span className="av">{shortName(p).trim()[0]}</span>
+                  <Avatar name={p === me ? myName : nameOf(p)} id={p} size={40} />
                   <span className="who"><b>{nameOf(p)}</b><span>{p === payer ? "دفع الفاتورة" : `أصنافه ${jod(preview.itemsOf[p] ?? 0)} + حصته من الإضافات`}</span></span>
                   <span className={`amt num ${p === payer ? "zero" : ""}`}>{jod(v)}</span>
                 </div>

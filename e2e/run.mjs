@@ -50,7 +50,7 @@ async function signIn(p, phone, name) {
   await p.getByRole("button", { name: "تأكيد" }).click();
   await p.getByLabel("اسمك").fill(name);
   await p.getByRole("button", { name: "يلا نبلش" }).click();
-  await p.getByRole("heading", { name: "دفترنا" }).waitFor();
+  await p.locator(".wrap").waitFor({ state: "attached" });
 }
 
 // ───────── Sara: sign in ─────────
@@ -75,7 +75,7 @@ await sara.getByRole("button", { name: "تأكيد" }).click();
 await sara.getByLabel("اسمك").fill("سارة");
 await shot(sara, "name");
 await sara.getByRole("button", { name: "يلا نبلش" }).click();
-await sara.getByText("الدفتر فاضي").waitFor();
+await sara.getByText("لسا ما في حدا").waitFor();
 await shot(sara, "empty-home");
 check(true, "sign-in flow");
 
@@ -104,8 +104,28 @@ await shot(sara, "home-two-friends");
 const ahmadRow = await text(sara, ".row:has-text('أحمد') .bal");
 check(ahmadRow.includes("١٠ د.أ") && ahmadRow.includes("إلك عنده"), "Ahmad's balance on the home list", `Ahmad's row: ${ahmadRow}`);
 
-// ───────── Split a bill ─────────
-await sara.getByRole("button", { name: "قسّم فاتورة" }).click();
+// ───────── Create a group and add both friends ─────────
+await sara.locator(".gtile.new").click();
+await sara.getByLabel("اسم الجروب").fill("الشلة");
+await sara.getByRole("radio", { name: "🍕" }).click();
+await shot(sara, "new-group");
+await sara.getByRole("button", { name: "اعمل الجروب" }).click();
+await sara.getByRole("dialog").getByRole("heading", { name: "الشلة" }).waitFor();
+check(await sara.getByRole("button", { name: "ضيف حدا عشان تقسّم" }).isDisabled(), "can't split in a group with nobody else");
+const inviteUrl = "http://" + (await text(sara, ".invite-link"));
+check(/[?&]join=/.test(inviteUrl), "group has an invite link", `invite link: ${inviteUrl}`);
+for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "0773333333"]]) {
+  await sara.getByRole("button", { name: "+ ضيف برقم التلفون" }).click();
+  await sara.getByLabel("الاسم").fill(name);
+  await sara.getByLabel("رقم التلفون").fill(phone);
+  await sara.getByRole("button", { name: "احفظ" }).click();
+  await sara.getByRole("dialog").getByRole("heading", { name: "الشلة" }).waitFor();
+}
+await shot(sara, "group");
+check((await sara.getByRole("dialog").locator(".row").count()) === 3, "group lists me and the two friends");
+
+// ───────── Split a bill inside the group ─────────
+await sara.getByRole("button", { name: "قسّم فاتورة بالجروب" }).click();
 await shot(sara, "split-source");
 await noHorizontalScroll(sara, "split source");
 const onePixelPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
@@ -124,8 +144,7 @@ await sara.getByLabel("سعر حمص بيروتي").fill("1.750");
 check((await sara.locator(".warn").count()) === 0, "warning clears after the fix");
 
 await sara.getByRole("button", { name: "التالي: مين كان موجود" }).click();
-await sara.getByRole("button", { name: "أحمد", exact: true }).click();
-await sara.getByRole("button", { name: "لينا", exact: true }).click();
+check(await sara.getByRole("button", { name: "أحمد", exact: true }).getAttribute("aria-pressed") === "true", "group members start as present");
 await sara.getByRole("button", { name: "+ حد جديد" }).click();
 await sara.getByLabel("الاسم").fill("عمر");
 await sara.getByLabel("رقم التلفون").fill("0794444444");
@@ -158,6 +177,9 @@ await shot(sara, "split-done");
 const waButtons = await sara.getByRole("link", { name: /ابعت واتساب لـ/ }).count();
 check(waButtons === 3, "WhatsApp button for each of the three", `WhatsApp buttons: ${waButtons}`);
 await sara.getByRole("button", { name: "تمام" }).click();
+await sara.getByRole("dialog").getByRole("heading", { name: "الشلة" }).waitFor();
+check(true, "after the split, back on the group");
+await sara.getByRole("button", { name: "سكّر" }).click();
 await shot(sara, "home-after-split");
 await noHorizontalScroll(sara, "home");
 
@@ -170,12 +192,12 @@ await ahmad.getByRole("button", { name: "الإعدادات" }).click();
 await ahmad.getByRole("button", { name: "سجّل خروج" }).click();
 await signIn(ahmad, "+962 78 222 2222", "أحمد");
 await shot(ahmad, "ahmad-home");
-const saraForAhmad = await text(ahmad, ".row").catch(() => "");
+const saraForAhmad = await text(ahmad, ".row:has-text('سارة')").catch(() => "");
 check(saraForAhmad.includes("عليك إله"), "Ahmad sees the same entries from his side", `Ahmad sees: ${saraForAhmad}`);
-const ahmadPage = await ahmad.evaluate(() => document.body.innerText);
-check(!ahmadPage.includes("لينا") && !ahmadPage.includes("عمر"), "Ahmad can't see entries between other people");
+check((await text(ahmad, ".row:has-text('لينا') .bal")).includes("خالص"), "Ahmad sees Lina from the group, but not her entries with Sara");
+check((await ahmad.locator(".gtile", { hasText: "الشلة" }).count()) === 1, "Ahmad sees the group he was added to");
 
-await ahmad.locator(".row").first().click();
+await ahmad.locator(".row:has-text('سارة')").click();
 await shot(ahmad, "ahmad-friend");
 await ahmad.getByRole("button", { name: /صفّي الحساب/ }).click();
 await ahmad.getByRole("button", { name: "آه، صفّي" }).click();
@@ -205,14 +227,30 @@ await shot(sara, "dark-home");
 await sara.locator(".row").first().click();
 await shot(sara, "dark-friend");
 await sara.getByRole("button", { name: "سكّر" }).click();
-await sara.getByRole("button", { name: "قسّم فاتورة" }).click();
-await shot(sara, "dark-split");
+await sara.locator(".gtile", { hasText: "الشلة" }).click();
+await shot(sara, "dark-group");
 
 await sara.setViewportSize({ width: 320, height: 640 });
 await sara.getByRole("button", { name: "سكّر" }).click();
 await sara.emulateMedia({ colorScheme: "light" });
 await shot(sara, "small-home");
 await noHorizontalScroll(sara, "320px screen");
+
+// ───────── Join a group from the invite link ─────────
+const rana = await ctx.newPage();
+watchErrors(rana, "rana");
+await rana.goto(URL);
+await rana.getByRole("button", { name: "الإعدادات" }).click();
+await rana.getByRole("button", { name: "سجّل خروج" }).click();
+await rana.goto(inviteUrl);
+check(await rana.getByText("انعزمت على جروب").isVisible(), "invite link mentions the group on the sign-in screen");
+await signIn(rana, "0795555555", "رنا");
+await rana.getByRole("dialog").getByRole("heading", { name: "الشلة" }).waitFor();
+await shot(rana, "join");
+await rana.getByRole("button", { name: "انضم للجروب" }).click();
+await rana.getByRole("dialog").locator(".row", { hasText: "أحمد" }).waitFor();
+check((await rana.getByRole("dialog").locator(".row").count()) === 4, "after joining, Rana sees all 4 members");
+await shot(rana, "joined");
 
 check(errors.length === 0, "no console errors", `console errors:\n${errors.join("\n")}`);
 await browser.close();

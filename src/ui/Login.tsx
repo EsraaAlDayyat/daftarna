@@ -3,7 +3,7 @@ import { displayPhone, normalizePhone, type Phone } from "../core/phone";
 import type { Backend, PhoneSignIn } from "../data/backend";
 import { DEMO_CODE } from "../data/demoBackend";
 
-export function Login({ backend, user }: { backend: Backend; user: { phone: Phone; name: string | null } | null }) {
+export function Login({ backend, user, invited }: { backend: Backend; user: { phone: Phone; name: string | null } | null; invited?: boolean }) {
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -57,8 +57,10 @@ export function Login({ backend, user }: { backend: Backend; user: { phone: Phon
 
   return (
     <div className="login">
+      <div className="login-art" aria-hidden="true"><span>🍕</span><span>☕</span><span>🧾</span></div>
       <h1>دفترنا</h1>
       <p className="tag">مين إلك ومين عليك، وتقسيم الفواتير بين الشلة.</p>
+      {invited && <p className="banner"><span>انعزمت على جروب 🎉 سجّل دخول عشان تنضم.</span></p>}
       {step === "phone" ? (
         <form onSubmit={sendCode} style={{ display: "contents" }}>
           <label className="l" htmlFor="ph">رقم تلفونك</label>

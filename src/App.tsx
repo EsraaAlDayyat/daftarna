@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { balancesFor, type Txn } from "./core/ledger";
 import { notificationText } from "./core/messages";
 import type { Phone } from "./core/phone";
-import type { Backend, Contact } from "./data/backend";
+import type { Backend, Contact, Group } from "./data/backend";
 import { createBackend } from "./data";
 import { Ctx, type AppCtx } from "./ui/AppContext";
 import { buildFriends } from "./ui/model";
 import { Login } from "./ui/Login";
 import { Home } from "./ui/Home";
+import { pendingJoin } from "./ui/invite";
 
 type Toast = { id: number; text: string; push?: boolean };
 
@@ -16,12 +17,16 @@ export default function App() {
   const [user, setUser] = useState<{ phone: Phone; name: string | null } | null | undefined>(undefined);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [txns, setTxns] = useState<Txn[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [reg, setReg] = useState<Record<Phone, boolean>>({});
 
   const toast = useCallback((text: string, push = false) => {
     const id = Math.random();
-    setToasts((t) => [...t, { id, text, push }]);
+    // One message at a time at the bottom; at most two notifications at the top
+    setToasts((t) => push
+      ? [...t.filter((x) => x.push).slice(-1), ...t.filter((x) => !x.push), { id, text, push }]
+      : [...t.filter((x) => x.push), { id, text, push }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), push ? 5000 : 2200);
   }, []);
 
@@ -33,11 +38,13 @@ export default function App() {
     if (!backend || !me) return;
     let seen: Set<string> | null = null;
     const unsubContacts = backend.watchContacts(setContacts);
+    const unsubGroups = backend.watchGroups(setGroups);
     const unsubTxns = backend.watchTxns((all) => {
       if (seen) {
         // Show an in-app notification for new entries someone else created while the app is open
         for (const t of all) {
-          if (seen.has(t.id) || t.createdBy === me) continue;
+          // Skip my own entries, and old ones that just became visible (e.g. sample data)
+          if (seen.has(t.id) || t.createdBy === me || Date.now() - t.createdAt > 120_000) continue;
           const other = t.creditor === me ? t.debtor : t.creditor;
           toast(notificationText(t, me, balancesFor(all, me).get(other) ?? 0), true);
         }
@@ -46,10 +53,10 @@ export default function App() {
       seen = new Set(all.map((t) => t.id));
       setTxns(all);
     });
-    return () => { unsubContacts(); unsubTxns(); setContacts([]); setTxns([]); };
+    return () => { unsubContacts(); unsubGroups(); unsubTxns(); setContacts([]); setGroups([]); setTxns([]); };
   }, [backend, me, toast]);
 
-  const friends = useMemo(() => (me ? buildFriends(me, contacts, txns) : []), [me, contacts, txns]);
+  const friends = useMemo(() => (me ? buildFriends(me, contacts, txns, groups) : []), [me, contacts, txns, groups]);
 
   // Find out who has the app, so WhatsApp can be suggested for everyone else
   const asked = useRef(new Set<Phone>());
@@ -65,7 +72,7 @@ export default function App() {
   }, [backend, friends]);
 
   const ctx: AppCtx | null = useMemo(() => backend && user && user.name ? {
-    backend, me: user.phone, myName: user.name, contacts, txns, friends,
+    backend, me: user.phone, myName: user.name, contacts, txns, friends, groups,
     toast: (t: string) => toast(t),
     registered: (p: Phone) => (p in reg ? reg[p] : null),
   } : null, [backend, user, contacts, txns, friends, toast, reg]);
@@ -74,7 +81,7 @@ export default function App() {
     <>
     <div className="toast-stack" aria-live="polite">
       {toasts.filter((t) => t.push).map((t) => (
-        <div key={t.id} className={`toast${t.push ? " push" : ""}`}>
+        <div key={t.id} className={`toast${t.push ? " push" : ""}`} onClick={() => setToasts((all) => all.filter((x) => x.id !== t.id))}>
           {t.push && <b>دفترنا · إشعار جديد</b>}
           {t.text}
         </div>
@@ -89,7 +96,7 @@ export default function App() {
   if (!backend || user === undefined) {
     return <div className="center" style={{ minHeight: "100dvh", justifyContent: "center" }}><div className="spinner" /></div>;
   }
-  if (!ctx) return <>{<Login backend={backend} user={user} />}{toastsEl}</>;
+  if (!ctx) return <>{<Login backend={backend} user={user} invited={!!pendingJoin()} />}{toastsEl}</>;
   return (
     <Ctx.Provider value={ctx}>
       <Home />

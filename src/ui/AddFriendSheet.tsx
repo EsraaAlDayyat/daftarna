@@ -3,8 +3,9 @@ import { normalizePhone, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Sheet } from "./Sheet";
 
-export function AddFriendSheet({ onClose, onAdded }: { onClose: () => void; onAdded: (p: Phone) => void }) {
-  const { backend, me, contacts, toast } = useApp();
+export function AddFriendSheet({ onClose, onAdded, groupId }: { onClose: () => void; onAdded: (p: Phone) => void; groupId?: string }) {
+  const { backend, me, contacts, toast, groups } = useApp();
+  const group = groups.find((g) => g.id === groupId);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [err, setErr] = useState("");
@@ -19,9 +20,10 @@ export function AddFriendSheet({ onClose, onAdded }: { onClose: () => void; onAd
     setBusy(true);
     try {
       await backend.saveContact({ phone: p, name: name.trim() });
+      if (group) await backend.addGroupMember(group.id, { phone: p, name: name.trim() });
       const u = await backend.lookupUser(p).catch(() => null);
       const existed = contacts.some((c) => c.phone === p);
-      toast(existed ? "انحدّث الاسم" : u ? `انضاف ${name.trim()}، وعنده التطبيق ✓` : `انضاف ${name.trim()}`);
+      toast(group ? `انضاف ${name.trim()} للجروب ✓` : existed ? "انحدّث الاسم" : u ? `انضاف ${name.trim()}، وعنده التطبيق ✓` : `انضاف ${name.trim()}`);
       onAdded(p);
     } catch {
       setErr("ما انحفظ، جرّب كمان مرة.");
@@ -30,7 +32,7 @@ export function AddFriendSheet({ onClose, onAdded }: { onClose: () => void; onAd
   }
 
   return (
-    <Sheet title="صاحب جديد" onClose={onClose}>
+    <Sheet title={group ? `ضيف شخص على ${group.name}` : "صاحب جديد"} onClose={onClose}>
       <form className="form" onSubmit={save}>
         <div className="full">
           <label className="l" htmlFor="fname">الاسم</label>

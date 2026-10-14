@@ -2,7 +2,7 @@
 
 A shared IOU ledger for friends and coworkers, with photo-based bill splitting. Built for Arabic speakers in Jordan: right-to-left, Jordanian dinars, and local receipts.
 
-> **Status:** early version (v0.1). The in-browser demo works end to end. The Firebase backend is written and unit-tested, and is not deployed yet.
+> **Status:** early version, live at [daftarna-99fad.web.app](https://daftarna-99fad.web.app). Try the [demo](https://daftarna-99fad.web.app/?demo) with any Jordanian number and the code `123456`.
 
 ## The problem
 
@@ -14,6 +14,7 @@ Daftarna keeps one ledger that both people see. When someone records "I paid for
 
 ## Features
 
+- **Groups.** Make a group for your friends, your office or your flat. Invite people with a link you can send over WhatsApp, Teams or email, or add them by phone number. Split a bill inside the group and everyone in it starts out selected.
 - **Shared ledger.** Each entry is stored once and shown to both people, each from their own side. The home screen shows totals for *owed to me* and *I owe*, plus a running balance per friend.
 - **Bill splitting from a photo.** An AI model reads the items, prices, tax and service charge from a receipt photo. You review and fix them, choose who was there and who had what, and confirm. Manual entry is always available.
 - **Fair, exact shares.** Shared dishes are split evenly among the people who had them. Tax, service, delivery and discounts are allocated in proportion to each person's order. Shares always add up to the bill, to the fils.
@@ -135,6 +136,8 @@ public/               PWA manifest, icons, service worker
 **AI runs on the server, with structured output.** The receipt photo goes to a Cloud Function, which calls the Claude API with a JSON schema. The API key never reaches the browser. Each user is limited to 30 reads per day. The model's output is always shown for review before anything is saved. If the computed total doesn't match the printed total, the app warns you.
 
 **PWA instead of app-store apps.** One codebase, no store fees, and instant updates. On iPhone, web push requires iOS 16.4 or later and the app added to the home screen, so the app explains that step. WhatsApp messages cover anyone without notifications.
+
+**Invite links are the group ID.** Each group gets a random Firestore ID, and the invite link is just that ID. Anyone signed in who has the link can read the group and add themselves, and nothing else; members can add others. Balances stay per person, across all groups, so a group is a way to organise people rather than a separate ledger.
 
 **Swappable backend.** The UI talks to a small `Backend` interface. The Firebase version and the in-browser demo both implement it. That makes the app easy to try without any setup, and lets the end-to-end test run without a server.
 
