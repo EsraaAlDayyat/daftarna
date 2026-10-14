@@ -8,11 +8,13 @@ import { Sheet } from "./Sheet";
 import { Receipt, WhatsApp } from "./icons";
 import { groupBalance } from "./model";
 import { clearInvite, inviteLink } from "./invite";
+import { useT } from "./i18n";
 
 export const GROUP_EMOJIS = ["🍕", "💼", "🏠", "☕", "✈️", "⚽", "🎓", "🎉"];
 
 export function NewGroupSheet({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
   const { backend, toast } = useApp();
+  const t = useT();
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState(GROUP_EMOJIS[0]);
   const [busy, setBusy] = useState(false);
@@ -20,27 +22,27 @@ export function NewGroupSheet({ onClose, onCreated }: { onClose: () => void; onC
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) { setErr("اكتب اسم للجروب"); return; }
+    if (!name.trim()) { setErr(t.groupNameMissing); return; }
     setBusy(true);
     try {
       const g = await backend.createGroup(name.trim(), emoji);
-      toast(`انعمل جروب ${g.name} ${g.emoji}`);
+      toast(`${t.groupCreated(g.name)} ${g.emoji}`);
       onCreated(g.id);
     } catch {
-      setErr("ما انعمل الجروب، جرّب كمان مرة.");
+      setErr(t.tryAgain);
       setBusy(false);
     }
   }
 
   return (
-    <Sheet title="جروب جديد" onClose={onClose}>
+    <Sheet title={t.newGroup} onClose={onClose}>
       <form className="stack" onSubmit={create}>
         <div>
-          <label className="l" htmlFor="gname">اسم الجروب</label>
-          <input id="gname" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="مثلاً: الشلة، الشغل، البيت" maxLength={40} />
+          <label className="l" htmlFor="gname">{t.groupName}</label>
+          <input id="gname" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t.groupNamePh} maxLength={40} />
         </div>
         <div>
-          <span className="l" id="emoji-l">اختار شكل</span>
+          <span className="l" id="emoji-l">{t.pickIcon}</span>
           <div className="emoji-pick" role="radiogroup" aria-labelledby="emoji-l">
             {GROUP_EMOJIS.map((x) => (
               <button type="button" key={x} role="radio" aria-checked={emoji === x} onClick={() => setEmoji(x)}>{x}</button>
@@ -48,8 +50,8 @@ export function NewGroupSheet({ onClose, onCreated }: { onClose: () => void; onC
           </div>
         </div>
         {err && <p className="err">{err}</p>}
-        <button className="btn big block" disabled={busy}>{busy ? "لحظة…" : "اعمل الجروب"}</button>
-        <p className="note">بعدها بتبعت رابط للأصحاب على واتساب أو Teams أو الإيميل، ومين ما فتحه بينضم.</p>
+        <button className="btn big block" disabled={busy}>{busy ? t.wait : t.createGroup}</button>
+        <p className="note">{t.newGroupNote}</p>
       </form>
     </Sheet>
   );
@@ -57,26 +59,27 @@ export function NewGroupSheet({ onClose, onCreated }: { onClose: () => void; onC
 
 function InviteCard({ group }: { group: Group }) {
   const { toast } = useApp();
+  const t = useT();
   const link = inviteLink(group.id);
-  const text = `تعال انضم لجروب "${group.name}" ${group.emoji} على دفترنا، عشان نسجّل مين إله ومين عليه:\n${link}`;
+  const text = t.inviteText(`${group.name} ${group.emoji}`, link);
   const canShare = typeof navigator.share === "function";
   async function share() {
-    try { await navigator.share({ title: `جروب ${group.name}`, text }); } catch { /* cancelled */ }
+    try { await navigator.share({ title: t.inviteSubject(group.name), text }); } catch { /* cancelled */ }
   }
   async function copy() {
-    try { await navigator.clipboard.writeText(link); toast("انتسخ الرابط ✓"); }
-    catch { toast("ما قدرنا ننسخ، انسخه يدوي"); }
+    try { await navigator.clipboard.writeText(link); toast(t.copied); }
+    catch { toast(t.copyFailed); }
   }
   return (
     <div className="invite">
-      <b>اعزم أصحابك على الجروب</b>
-      <span className="muted">ابعت الرابط بأي مكان: واتساب، Teams، أو الإيميل.</span>
+      <b>{t.inviteTitle}</b>
+      <span className="muted">{t.inviteHint}</span>
       <div className="invite-link" dir="ltr">{link.replace(/^https?:\/\//, "")}</div>
       <div className="actions">
-        {canShare && <button className="btn small" onClick={share}>شارك الرابط</button>}
-        <button className="btn small soft" onClick={copy}>انسخ</button>
-        <a className="btn small soft" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener"><WhatsApp />واتساب</a>
-        <a className="btn small soft" href={`mailto:?subject=${encodeURIComponent(`جروب ${group.name} على دفترنا`)}&body=${encodeURIComponent(text)}`}>إيميل</a>
+        {canShare && <button className="btn small" onClick={share}>{t.share}</button>}
+        <button className="btn small soft" onClick={copy}>{t.copy}</button>
+        <a className="btn small soft" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener"><WhatsApp />{t.whatsapp}</a>
+        <a className="btn small soft" href={`mailto:?subject=${encodeURIComponent(t.inviteSubject(group.name))}&body=${encodeURIComponent(text)}`}>{t.email}</a>
       </div>
     </div>
   );
@@ -86,6 +89,7 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit }: {
   id: string; onClose: () => void; onFriend: (p: Phone) => void; onAddMember: () => void; onSplit: () => void;
 }) {
   const { groups, friends, me, myName } = useApp();
+  const t = useT();
   const g = groups.find((x) => x.id === id);
   if (!g) return null;
   const net = groupBalance(g, friends, me);
@@ -94,11 +98,11 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit }: {
 
   return (
     <Sheet title={g.name} lead={<span className="g-emoji" aria-hidden="true">{g.emoji}</span>} onClose={onClose} full>
-      <div className="muted" style={{ marginTop: -8 }}>{(g.members.length).toLocaleString("ar-JO")} {g.members.length === 1 ? "شخص" : "أشخاص"}</div>
+      <div className="muted" style={{ marginTop: -8 }}>{t.people(g.members.length)}</div>
 
       {!alone && (
         <div className={`net-strip ${net > 0 ? "pos" : net < 0 ? "neg" : "zero"}`}>
-          <span>{net > 0 ? "إلك عند الجروب" : net < 0 ? "عليك للجروب" : "كل الحسابات خالصة"}</span>
+          <span>{net > 0 ? t.groupOwesMe : net < 0 ? t.iOweGroup : t.groupSettled}</span>
           {net !== 0 && <b className="num">{jod(Math.abs(net))}</b>}
         </div>
       )}
@@ -106,13 +110,13 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit }: {
       <InviteCard group={g} />
 
       <div className="section-h">
-        <h3>الأعضاء</h3>
-        <button className="btn small soft" onClick={onAddMember}>+ ضيف برقم التلفون</button>
+        <h3>{t.members}</h3>
+        <button className="btn small soft" onClick={onAddMember}>{t.addByPhone}</button>
       </div>
       <div className="list">
         <div className="row static">
           <Avatar name={myName} id={me} />
-          <span className="who"><b>أنا ({myName})</b></span>
+          <span className="who"><b>{t.meNamed(myName)}</b></span>
         </div>
         {others.map((p) => {
           const f = friends.find((x) => x.phone === p);
@@ -124,8 +128,8 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit }: {
               <Avatar name={name} id={p} />
               <span className="who"><b>{name}</b></span>
               <span className={`bal num ${cls}`}>
-                {cls === "zero" ? "خالص" : jod(Math.abs(bal))}
-                <small>{cls === "pos" ? "إلك عنده" : cls === "neg" ? "عليك إله" : ""}</small>
+                {cls === "zero" ? t.settled : jod(Math.abs(bal))}
+                <small>{cls === "pos" ? t.owesMe : cls === "neg" ? t.iOweThem : ""}</small>
               </span>
             </button>
           );
@@ -133,7 +137,7 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit }: {
       </div>
 
       <div className="sticky-foot">
-        <button className="btn big warm" onClick={onSplit} disabled={alone}><Receipt />{alone ? "ضيف حدا عشان تقسّم" : "قسّم فاتورة بالجروب"}</button>
+        <button className="btn big warm" onClick={onSplit} disabled={alone}><Receipt />{alone ? t.addSomeoneFirst : t.splitInGroup}</button>
       </div>
     </Sheet>
   );
@@ -141,6 +145,7 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit }: {
 
 export function JoinSheet({ id, onClose, onJoined }: { id: string; onClose: () => void; onJoined: (id: string) => void }) {
   const { backend, groups, toast } = useApp();
+  const t = useT();
   const [g, setG] = useState<Group | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const already = groups.some((x) => x.id === id);
@@ -156,34 +161,34 @@ export function JoinSheet({ id, onClose, onJoined }: { id: string; onClose: () =
     try {
       await backend.joinGroup(id);
       clearInvite();
-      toast(`صرت بجروب ${g?.name ?? ""} ✓`);
+      toast(t.joined(g?.name ?? ""));
       onJoined(id);
     } catch {
-      toast("ما زبط الانضمام، جرّب كمان مرة");
+      toast(t.tryAgain);
       setBusy(false);
     }
   }
 
   return (
-    <Sheet title="دعوة لجروب" onClose={close}>
+    <Sheet title={t.joinTitle} onClose={close}>
       {g === undefined ? (
         <div className="center"><div className="spinner" /></div>
       ) : g === null ? (
         <div className="empty">
-          <h3>الرابط مش شغال</h3>
-          <div>اطلب من صاحبك يبعتلك الرابط كمان مرة.</div>
-          <button className="btn" onClick={close}>تمام</button>
+          <h3>{t.badLink}</h3>
+          <div>{t.badLinkHint}</div>
+          <button className="btn" onClick={close}>{t.ok}</button>
         </div>
       ) : (
         <div className="stack center-text">
           <div className="join-emoji" aria-hidden="true">{g.emoji}</div>
           <h3 className="join-name">{g.name}</h3>
-          <div className="avatars" aria-label={`الأعضاء: ${g.members.map((p) => g.names[p]).join("، ")}`}>
+          <div className="avatars" aria-label={`${t.members}: ${g.members.map((p) => g.names[p]).join("، ")}`}>
             {g.members.slice(0, 6).map((p) => <Avatar key={p} name={g.names[p] || "؟"} id={p} size={40} />)}
           </div>
           <p className="muted" style={{ margin: 0 }}>{g.members.map((p) => g.names[p]).filter(Boolean).join("، ")}</p>
-          <button className="btn big block" disabled={busy} onClick={join}>{busy ? "لحظة…" : "انضم للجروب"}</button>
-          <button className="link-btn" onClick={close}>مش هلأ</button>
+          <button className="btn big block" disabled={busy} onClick={join}>{busy ? t.wait : t.join}</button>
+          <button className="link-btn" onClick={close}>{t.notNow}</button>
         </div>
       )}
     </Sheet>

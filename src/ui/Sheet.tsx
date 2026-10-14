@@ -1,9 +1,11 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { useT } from "./i18n";
 
 export function Sheet({ title, onClose, children, full, lead }: {
   title: ReactNode; onClose: () => void; children: ReactNode; full?: boolean; lead?: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const t = useT();
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", k);
@@ -19,7 +21,7 @@ export function Sheet({ title, onClose, children, full, lead }: {
         <div className="sheet-head">
           {lead}
           <h2>{title}</h2>
-          <button className="x" onClick={onClose} aria-label="سكّر">×</button>
+          <button className="x" onClick={onClose} aria-label={t.close}>×</button>
         </div>
         {children}
       </div>

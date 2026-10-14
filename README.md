@@ -22,6 +22,7 @@ Daftarna keeps one ledger that both people see. When someone records "I paid for
 - **Append-only history.** Entries are never edited or deleted. Cancelling one adds a reversal, and the original stays visible, struck through, to both people.
 - **Notifications and WhatsApp.** Friends who have the app get a push notification. Friends who don't get a prefilled WhatsApp message instead. You can also send a reminder or a full statement over WhatsApp.
 - **Sign in with your phone number.** You verify it with an SMS code. Friends are added by phone number, and entries link up automatically when they join.
+- **Jordanian or Egyptian.** All the wording is in everyday dialect, Jordanian by default, with an Egyptian option on the sign-in screen and in settings. WhatsApp messages follow the same choice.
 - **Installable PWA** with offline app shell, light and dark themes, and a layout built for phones.
 
 ## Screenshots

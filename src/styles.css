@@ -326,3 +326,8 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 .settings-list .card { background: var(--sheet); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Dialect switch */
+.dialects { display: inline-flex; gap: 4px; background: var(--sheet); border-radius: 99px; padding: 4px; box-shadow: var(--shadow); align-self: flex-start; }
+.dialects button { border: 0; background: transparent; border-radius: 99px; padding: 4px 14px; min-height: 36px; font-weight: 600; cursor: pointer; color: var(--ink-soft); }
+.dialects button[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }

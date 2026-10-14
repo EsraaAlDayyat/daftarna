@@ -59,6 +59,11 @@ watchErrors(sara, "sara");
 await sara.goto(URL);
 await sara.getByRole("button", { name: "ابعتلي كود" }).waitFor();
 await shot(sara, "login");
+await sara.getByRole("radio", { name: /مصري/ }).click();
+check(await sara.getByText("مين ليك ومين عليك").isVisible() && await sara.getByLabel("رقم موبايلك").isVisible(), "switches the words to Egyptian");
+await shot(sara, "login-egyptian");
+await sara.getByRole("radio", { name: /أردني/ }).click();
+check(await sara.getByLabel("رقم تلفونك").isVisible(), "and back to Jordanian");
 
 await sara.getByLabel("رقم تلفونك").fill("123");
 await sara.getByRole("button", { name: "ابعتلي كود" }).click();
@@ -89,11 +94,11 @@ for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3
   await sara.getByRole("dialog").getByRole("heading", { name }).waitFor();
   if (name === "لينا") break;
 
-  await sara.getByRole("button", { name: /أعطيته دين/ }).click();
+  await sara.getByRole("button", { name: /سلّفته/ }).click();
   await sara.getByLabel("المبلغ (د.أ)").fill("10");
-  await sara.getByLabel("ملاحظة").fill("تكسي");
-  await sara.getByRole("button", { name: "سجّل: أعطيته دين" }).click();
-  await sara.getByText("ما عنده التطبيق. بلّغه واتساب؟").waitFor();
+  await sara.getByLabel("على شو؟").fill("تكسي");
+  await sara.getByRole("button", { name: "سجّل: سلّفته" }).click();
+  await sara.getByText("ما عنده التطبيق. ابعتله واتساب؟").waitFor();
   const href = await sara.getByRole("dialog").getByRole("link", { name: "ابعت واتساب" }).getAttribute("href");
   check(href.startsWith("https://wa.me/962782222222?text="), "WhatsApp link uses the international number", `bad WhatsApp link: ${href}`);
   await shot(sara, "friend-after-entry");
@@ -115,7 +120,7 @@ check(await sara.getByRole("button", { name: "ضيف حدا عشان تقسّم"
 const inviteUrl = "http://" + (await text(sara, ".invite-link"));
 check(/[?&]join=/.test(inviteUrl), "group has an invite link", `invite link: ${inviteUrl}`);
 for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "0773333333"]]) {
-  await sara.getByRole("button", { name: "+ ضيف برقم التلفون" }).click();
+  await sara.getByRole("button", { name: "+ ضيف برقمه" }).click();
   await sara.getByLabel("الاسم").fill(name);
   await sara.getByLabel("رقم التلفون").fill(phone);
   await sara.getByRole("button", { name: "احفظ" }).click();
@@ -125,14 +130,14 @@ await shot(sara, "group");
 check((await sara.getByRole("dialog").locator(".row").count()) === 3, "group lists me and the two friends");
 
 // ───────── Split a bill inside the group ─────────
-await sara.getByRole("button", { name: "قسّم فاتورة بالجروب" }).click();
+await sara.getByRole("dialog").getByRole("button", { name: "قسّم فاتورة" }).click();
 await shot(sara, "split-source");
 await noHorizontalScroll(sara, "split source");
 const onePixelPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
 await sara.locator("input[type=file]").nth(1).setInputFiles({ name: "bill.png", mimeType: "image/png", buffer: onePixelPng });
-await sara.getByText("عم نقرأ الأصناف").waitFor();
+await sara.getByText("عم نقرأ الفاتورة").first().waitFor();
 await shot(sara, "split-reading");
-await sara.getByRole("heading", { name: "الأصناف" }).waitFor();
+await sara.getByRole("heading", { name: "شو طلبتوا؟" }).waitFor();
 await shot(sara, "split-items");
 await noHorizontalScroll(sara, "split items");
 const total = await text(sara, ".sumline.total");
@@ -166,12 +171,12 @@ await item("ليمون").getByRole("button", { name: "الكل" }).click();
 await shot(sara, "split-assign");
 await noHorizontalScroll(sara, "who had what");
 
-await sara.getByRole("button", { name: "التالي: الملخص" }).click();
+await sara.getByRole("button", { name: "التالي: كل واحد قديش" }).click();
 await shot(sara, "split-summary");
 const shares = await sara.locator(".share-row .amt").allInnerTexts();
 const sum = shares.map(toFils).reduce((a, b) => a + b, 0);
 check(sum === 32857, `on-screen shares add up to the bill (${shares.join(" + ")})`, `shares sum to ${sum}, expected 32857`);
-await sara.getByRole("button", { name: "أكّد وسجّل بالدفاتر" }).click();
+await sara.getByRole("button", { name: "تمام، سجّل" }).click();
 await sara.getByRole("heading", { name: "انسجّلت ✓" }).waitFor();
 await shot(sara, "split-done");
 const waButtons = await sara.getByRole("link", { name: /ابعت واتساب لـ/ }).count();
@@ -189,7 +194,7 @@ watchErrors(ahmad, "ahmad");
 await ahmad.goto(URL);
 await ahmad.getByRole("heading", { name: "دفترنا" }).waitFor();
 await ahmad.getByRole("button", { name: "الإعدادات" }).click();
-await ahmad.getByRole("button", { name: "سجّل خروج" }).click();
+await ahmad.getByRole("button", { name: "اطلع من الحساب" }).click();
 await signIn(ahmad, "+962 78 222 2222", "أحمد");
 await shot(ahmad, "ahmad-home");
 const saraForAhmad = await text(ahmad, ".row:has-text('سارة')").catch(() => "");
@@ -214,7 +219,7 @@ check((await text(sara, ".row:has-text('أحمد') .bal")).includes("خالص"),
 await sara.locator(".row:has-text('لينا')").click();
 const before = await text(sara, ".big-bal");
 await sara.getByRole("button", { name: "إلغاء" }).first().click();
-await sara.getByRole("button", { name: "ألغيها" }).click();
+await sara.getByRole("button", { name: "آه، ألغيها" }).click();
 await sara.waitForTimeout(400);
 check((await sara.locator(".entry.void").count()) === 1, "a reversed entry stays in history, struck through");
 await shot(sara, "sara-lina-reversal");
@@ -241,7 +246,7 @@ const rana = await ctx.newPage();
 watchErrors(rana, "rana");
 await rana.goto(URL);
 await rana.getByRole("button", { name: "الإعدادات" }).click();
-await rana.getByRole("button", { name: "سجّل خروج" }).click();
+await rana.getByRole("button", { name: "اطلع من الحساب" }).click();
 await rana.goto(inviteUrl);
 check(await rana.getByText("انعزمت على جروب").isVisible(), "invite link mentions the group on the sign-in screen");
 await signIn(rana, "0795555555", "رنا");

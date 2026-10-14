@@ -11,17 +11,19 @@ import { Avatar } from "./Avatar";
 import { Camera, ImageIc, Pen, WhatsApp } from "./icons";
 import { balanceAfter } from "./model";
 import { newId, shrinkImage } from "./util";
+import { useDialect } from "./i18n";
 
 type Step = "source" | "reading" | "items" | "people" | "assign" | "summary" | "done";
 interface EditItem { id: string; name: string; qty: number; price: string }
 type ExtrasStr = Record<keyof BillExtras, string>;
 
 const STEPS: Step[] = ["items", "people", "assign", "summary"];
-const EXTRA_LABELS: Record<keyof BillExtras, string> = { tax: "ضريبة المبيعات", service: "خدمة", delivery: "توصيل", discount: "خصم" };
 
 export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?: string }) {
   const { backend, me, myName, friends, toast, registered, txns, groups } = useApp();
   const group = groups.find((g) => g.id === groupId);
+  const { t, dialect } = useDialect();
+  const EXTRA_LABELS: Record<keyof BillExtras, string> = { tax: t.tax, service: t.service, delivery: t.delivery, discount: t.discount };
   const [step, setStep] = useState<Step>("source");
   const [restaurant, setRestaurant] = useState("");
   const [items, setItems] = useState<EditItem[]>([]);
@@ -38,11 +40,11 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
   const [made, setMade] = useState<Txn[]>([]);
   const [showMissing, setShowMissing] = useState(false);
 
-  const nameOf = (p: Phone) => p === me ? `أنا (${myName})` : friends.find((f) => f.phone === p)?.name ?? extraPeople.find((x) => x.phone === p)?.name ?? p;
-  const shortName = (p: Phone) => p === me ? "أنا" : nameOf(p);
+  const nameOf = (p: Phone) => p === me ? t.meNamed(myName) : friends.find((f) => f.phone === p)?.name ?? extraPeople.find((x) => x.phone === p)?.name ?? p;
+  const shortName = (p: Phone) => p === me ? t.me : nameOf(p);
 
   // ---- Items in fils ----
-  const billItems: BillItem[] = useMemo(() => items.map((i) => ({ id: i.id, name: i.name.trim() || "صنف", qty: i.qty, price: parseJod(i.price) ?? -1 })), [items]);
+  const billItems: BillItem[] = useMemo(() => items.map((i) => ({ id: i.id, name: i.name.trim() || t.theItem, qty: i.qty, price: parseJod(i.price) ?? -1 })), [items]);
   const billExtras: BillExtras = useMemo(() => ({
     tax: parseJod(extras.tax) ?? 0, service: parseJod(extras.service) ?? 0,
     delivery: parseJod(extras.delivery) ?? 0, discount: parseJod(extras.discount) ?? 0,
@@ -65,10 +67,10 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
       const ex = (f: Fils) => (f ? filsToInput(f) : "");
       setExtras({ tax: ex(r.extras.tax), service: ex(r.extras.service), delivery: ex(r.extras.delivery), discount: ex(r.extras.discount) });
       setPrintedTotal(r.printedTotal);
-      setReadNote(backend.mode === "demo" ? "النسخة التجريبية ما بتقرأ صور حقيقية، فحطينا فاتورة مثال. راجع الأصناف وصلّح أي إشي." : "راجع الأصناف والأسعار، وصلّح أي إشي انقرأ غلط.");
+      setReadNote(backend.mode === "demo" ? t.demoReadNote : t.readNote);
       setStep("items");
     } catch {
-      startManual("ما قدرنا نقرأ الفاتورة. دخّلها يدوي: صنف وسعر، صنف وسعر.");
+      startManual(t.readFailed);
     }
   }
   function startManual(note = "") {
@@ -86,9 +88,9 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
   };
   function itemsNext() {
     const bad = items.filter((i) => (i.name.trim() || i.price.trim()) && !((parseJod(i.price) ?? 0) > 0));
-    if (!validItems.length) { setErr("ضيف صنف واحد على الأقل بسعره"); return; }
-    if (bad.length) { setErr("في صنف سعره مش مزبوط"); return; }
-    if (total < 0) { setErr("الخصم أكبر من الفاتورة"); return; }
+    if (!validItems.length) { setErr(t.needOneItem); return; }
+    if (bad.length) { setErr(t.badPrice); return; }
+    if (total < 0) { setErr(t.discountTooBig); return; }
     setItems((it) => it.filter((i) => (parseJod(i.price) ?? 0) > 0));
     setErr(""); setStep("people");
   }
@@ -102,15 +104,15 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
   async function addNewPerson(e: React.FormEvent) {
     e.preventDefault();
     const p = normalizePhone(np.phone);
-    if (!np.name.trim() || !p) { setNp({ ...np, err: "اكتب الاسم ورقم صحيح" }); return; }
-    if (p === me) { setNp({ ...np, err: "هاد رقمك 🙂" }); return; }
+    if (!np.name.trim() || !p) { setNp({ ...np, err: t.nameAndPhone }); return; }
+    if (p === me) { setNp({ ...np, err: t.thatsYou }); return; }
     try { await backend.saveContact({ phone: p, name: np.name.trim() }); } catch { /* not fatal; continue */ }
     setExtraPeople((x) => [...x, { phone: p, name: np.name.trim() }]);
     setPresent((s) => (s.includes(p) ? s : [...s, p]));
     setNp({ name: "", phone: "", open: false, err: "" });
   }
   function peopleNext() {
-    if (present.length < 2) { setErr("اختار شخص واحد على الأقل غيرك"); return; }
+    if (present.length < 2) { setErr(t.pickOneMore); return; }
     setErr("");
     setEaters((e) => Object.fromEntries(items.map((i) => [i.id, (e[i.id] ?? []).filter((p) => present.includes(p))])));
     if (!present.includes(payer)) setPayer(me);
@@ -140,7 +142,7 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
     const input = { items: validItems, eaters, extras: billExtras, payer };
     if (validateSplit(input)) return;
     const r = splitBill(input);
-    const label = restaurant.trim() ? `فاتورة ${restaurant.trim()}` : "فاتورة";
+    const label = t.billLabel(restaurant.trim());
     const news: NewTxn[] = Object.entries(r.shares)
       .filter(([p, v]) => p !== payer && v > 0)
       .map(([p, v]) => ({ creditor: payer, debtor: p, amount: v, kind: "split", note: label, createdBy: me, createdByName: myName }));
@@ -151,9 +153,9 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
       });
       setMade(out);
       setStep("done");
-      toast("انسجّلت الفاتورة ✓");
+      toast(t.billSaved);
     } catch {
-      setErr("ما انسجّلت، جرّب كمان مرة.");
+      setErr(t.saveFailed);
     } finally { setBusy(false); }
   }
 
@@ -163,8 +165,8 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
     <div className="steps" aria-hidden="true">{STEPS.map((s, i) => <i key={s} className={i <= stepIdx ? "on" : ""} />)}</div>
   );
   const titles: Record<Step, string> = {
-    source: group ? `قسّم فاتورة · ${group.name}` : "قسّم فاتورة", reading: "عم نقرأ الفاتورة…", items: "الأصناف", people: "مين كان موجود؟",
-    assign: "مين أكل شو؟", summary: "الملخص", done: "انسجّلت ✓",
+    source: group ? t.splitIn(group.name) : t.split, reading: t.reading, items: t.items, people: t.whoWasThere,
+    assign: t.whoHadWhat, summary: t.summary, done: t.done,
   };
   const pool = group ? group.members.filter((p) => p !== me) : friends.map((f) => f.phone);
   const candidates: Phone[] = [me, ...pool, ...extraPeople.map((x) => x.phone).filter((p) => !pool.includes(p))];
@@ -177,41 +179,41 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
         <>
           <div className="pick">
             <label className="main">
-              <Camera />صوّر الفاتورة
+              <Camera />{t.takePhoto}
               <input className="sr-only" type="file" accept="image/*" capture="environment" onChange={(e) => onPhoto(e.target.files?.[0])} />
             </label>
             <label>
-              <ImageIc />ارفع صورة
+              <ImageIc />{t.uploadPhoto}
               <input className="sr-only" type="file" accept="image/*" onChange={(e) => onPhoto(e.target.files?.[0])} />
             </label>
-            <button onClick={() => startManual()}><Pen />دخّلها يدوي</button>
+            <button onClick={() => startManual()}><Pen />{t.typeIt}</button>
           </div>
-          <p className="note">التطبيق بيقرأ الأصناف والأسعار والضريبة والخدمة، وإنت بتراجعها قبل التقسيم.</p>
+          <p className="note">{t.sourceNote}</p>
         </>
       )}
 
       {step === "reading" && (
-        <div className="center"><div className="spinner" /><p>عم نقرأ الأصناف والأسعار…<br /><span className="muted">بتاخد كم ثانية</span></p></div>
+        <div className="center"><div className="spinner" /><p>{t.reading}<br /><span className="muted">{t.readingHint}</span></p></div>
       )}
 
       {step === "items" && (
         <>
           {readNote && <div className="banner">{readNote}</div>}
           <div>
-            <label className="l" htmlFor="rest">المطعم</label>
-            <input id="rest" value={restaurant} onChange={(e) => setRestaurant(e.target.value)} placeholder="مثلاً: مطعم الريم" maxLength={60} />
+            <label className="l" htmlFor="rest">{t.restaurant}</label>
+            <input id="rest" value={restaurant} onChange={(e) => setRestaurant(e.target.value)} placeholder={t.restaurantPh} maxLength={60} />
           </div>
           <div className="items">
             {items.map((i, idx) => (
               <div className="item-edit" key={i.id}>
-                <input value={i.name} autoFocus={idx > 0 && idx === items.length - 1 && !i.name && !i.price} onChange={(e) => updItem(i.id, { name: e.target.value })} placeholder={`صنف ${idx + 1}`} aria-label="اسم الصنف" />
-                <input value={i.price} dir="ltr" inputMode="decimal" placeholder="0.000" aria-label={`سعر ${i.name || "الصنف"}`}
+                <input value={i.name} autoFocus={idx > 0 && idx === items.length - 1 && !i.name && !i.price} onChange={(e) => updItem(i.id, { name: e.target.value })} placeholder={t.itemPh(idx + 1)} aria-label={t.itemName} />
+                <input value={i.price} dir="ltr" inputMode="decimal" placeholder="0.000" aria-label={t.priceOf(i.name || t.theItem)}
                   onChange={(e) => updItem(i.id, { price: e.target.value })}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addItem(); } }} />
-                <button className="del" onClick={() => setItems((it) => it.filter((x) => x.id !== i.id))} aria-label={`احذف ${i.name || "الصنف"}`}>×</button>
+                <button className="del" onClick={() => setItems((it) => it.filter((x) => x.id !== i.id))} aria-label={t.removeItem(i.name || t.theItem)}>×</button>
               </div>
             ))}
-            <button className="btn ghost" onClick={addItem}>+ صنف</button>
+            <button className="btn ghost" onClick={addItem}>{t.addItem}</button>
           </div>
           <div className="extras">
             {(Object.keys(EXTRA_LABELS) as (keyof BillExtras)[]).map((k) => (
@@ -222,54 +224,54 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
             ))}
           </div>
           <div className="actions">
-            <button className="btn soft small" onClick={() => pct("service", 10)}>خدمة 10%</button>
-            <button className="btn soft small" onClick={() => pct("tax", 16)}>ضريبة 16%</button>
+            <button className="btn soft small" onClick={() => pct("service", 10)}>{t.service10}</button>
+            <button className="btn soft small" onClick={() => pct("tax", 16)}>{t.tax16}</button>
           </div>
           <div>
-            <div className="sumline"><span>مجموع الأصناف</span><span className="num">{jod(subtotal)}</span></div>
-            <div className="sumline total"><span>المجموع</span><span className="num">{jod(total)}</span></div>
+            <div className="sumline"><span>{t.itemsTotal}</span><span className="num">{jod(subtotal)}</span></div>
+            <div className="sumline total"><span>{t.total}</span><span className="num">{jod(total)}</span></div>
             {printedTotal > 0 && Math.abs(printedTotal - total) > 5 && (
-              <div className="warn">المجموع المكتوب بالفاتورة {jod(printedTotal)}، والحساب هون {jod(total)}. راجع الأصناف أو الإضافات.</div>
+              <div className="warn">{t.totalMismatch(jod(printedTotal), jod(total))}</div>
             )}
           </div>
           {err && <p className="err">{err}</p>}
           <div className="sticky-foot">
-            <button className="btn ghost" onClick={() => setStep("source")}>رجوع</button>
-            <button className="btn big" onClick={itemsNext}>التالي: مين كان موجود</button>
+            <button className="btn ghost" onClick={() => setStep("source")}>{t.back}</button>
+            <button className="btn big" onClick={itemsNext}>{t.nextPeople}</button>
           </div>
         </>
       )}
 
       {step === "people" && (
         <>
-          <p className="muted" style={{ margin: 0 }}>{group ? "كل الجروب مختار. شيل اللي ما كانوا معك." : "اضغط على أسماء اللي كانوا معك."}</p>
+          <p className="muted" style={{ margin: 0 }}>{group ? t.groupPreselected : t.tapWhoWasThere}</p>
           <div className="people">
             {candidates.map((p) => (
               <button key={p} className="pchip" aria-pressed={present.includes(p)} onClick={() => togglePresent(p)}>{nameOf(p)}</button>
             ))}
-            <button className="pchip add" onClick={() => setNp({ ...np, open: true })}>+ حد جديد</button>
+            <button className="pchip add" onClick={() => setNp({ ...np, open: true })}>{t.someoneNew}</button>
           </div>
           {np.open && (
             <form className="confirm calm" onSubmit={addNewPerson}>
               <div className="form">
-                <input autoFocus placeholder="الاسم" value={np.name} onChange={(e) => setNp({ ...np, name: e.target.value })} aria-label="الاسم" />
-                <input placeholder="079 123 4567" dir="ltr" inputMode="tel" value={np.phone} onChange={(e) => setNp({ ...np, phone: e.target.value })} aria-label="رقم التلفون" />
+                <input autoFocus placeholder={t.name} value={np.name} onChange={(e) => setNp({ ...np, name: e.target.value })} aria-label={t.name} />
+                <input placeholder="079 123 4567" dir="ltr" inputMode="tel" value={np.phone} onChange={(e) => setNp({ ...np, phone: e.target.value })} aria-label={t.phone} />
               </div>
               {np.err && <p className="err" style={{ margin: 0 }}>{np.err}</p>}
-              <div className="actions"><button className="btn">ضيفه</button><button type="button" className="btn ghost" onClick={() => setNp({ name: "", phone: "", open: false, err: "" })}>لا</button></div>
+              <div className="actions"><button className="btn">{t.addThem}</button><button type="button" className="btn ghost" onClick={() => setNp({ name: "", phone: "", open: false, err: "" })}>{t.no}</button></div>
             </form>
           )}
           {err && <p className="err">{err}</p>}
           <div className="sticky-foot">
-            <button className="btn ghost" onClick={back}>رجوع</button>
-            <button className="btn big" onClick={peopleNext}>التالي: مين أكل شو</button>
+            <button className="btn ghost" onClick={back}>{t.back}</button>
+            <button className="btn big" onClick={peopleNext}>{t.nextAssign}</button>
           </div>
         </>
       )}
 
       {step === "assign" && (
         <>
-          <p className="muted" style={{ margin: 0 }}>لكل صنف، اضغط على اللي أكلوا منه. الصنف المشترك بيتقسم بالتساوي.</p>
+          <p className="muted" style={{ margin: 0 }}>{t.tapWhoAte}</p>
           {validItems.map((i) => {
             const who = eaters[i.id] ?? [];
             return (
@@ -282,16 +284,16 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
                   {present.map((p) => (
                     <button key={p} className="pchip" aria-pressed={who.includes(p)} onClick={() => toggleEater(i.id, p)}>{shortName(p)}</button>
                   ))}
-                  <button className="pchip add" onClick={() => setAll(i.id)}>{who.length === present.length ? "ولا حدا" : "الكل"}</button>
+                  <button className="pchip add" onClick={() => setAll(i.id)}>{who.length === present.length ? t.nobody : t.everyone}</button>
                 </div>
-                {who.length > 1 && <div className="per">{who.length.toLocaleString("ar-JO")} أشخاص، كل واحد {jod(Math.round(i.price / who.length))}</div>}
+                {who.length > 1 && <div className="per">{t.perPerson(who.length, jod(Math.round(i.price / who.length)))}</div>}
               </div>
             );
           })}
-          {showMissing && missing.length > 0 && <p className="err">{missing.length === 1 ? "في صنف ما حدا اختاره" : `في ${missing.length.toLocaleString("ar-JO")} أصناف ما حدا اختارها`}</p>}
+          {showMissing && missing.length > 0 && <p className="err">{missing.length === 1 ? t.oneMissing : t.manyMissing(missing.length)}</p>}
           <div className="sticky-foot">
-            <button className="btn ghost" onClick={back}>رجوع</button>
-            <button className="btn big" onClick={assignNext}>{missing.length ? `ضايل ${missing.length.toLocaleString("ar-JO")}` : "التالي: الملخص"}</button>
+            <button className="btn ghost" onClick={back}>{t.back}</button>
+            <button className="btn big" onClick={assignNext}>{missing.length ? t.left(missing.length) : t.nextSummary}</button>
           </div>
         </>
       )}
@@ -299,7 +301,7 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
       {step === "summary" && preview && (
         <>
           <div>
-            <p className="muted" style={{ margin: "0 0 6px" }}>مين دفع؟</p>
+            <p className="muted" style={{ margin: "0 0 6px" }}>{t.whoPaid}</p>
             <div className="people">
               {present.map((p) => (
                 <button key={p} className="pchip" aria-pressed={payer === p} onClick={() => setPayer(p)}>{shortName(p)}</button>
@@ -312,24 +314,24 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
               return (
                 <div key={p} className="share-row">
                   <Avatar name={p === me ? myName : nameOf(p)} id={p} size={40} />
-                  <span className="who"><b>{nameOf(p)}</b><span>{p === payer ? "دفع الفاتورة" : `أصنافه ${jod(preview.itemsOf[p] ?? 0)} + حصته من الإضافات`}</span></span>
+                  <span className="who"><b>{nameOf(p)}</b><span>{p === payer ? t.paidTheBill : t.itemsPlusShare(jod(preview.itemsOf[p] ?? 0))}</span></span>
                   <span className={`amt num ${p === payer ? "zero" : ""}`}>{jod(v)}</span>
                 </div>
               );
             })}
           </div>
           <div>
-            <div className="sumline"><span>الأصناف</span><span className="num">{jod(preview.subtotal)}</span></div>
+            <div className="sumline"><span>{t.itemsTotal}</span><span className="num">{jod(preview.subtotal)}</span></div>
             {(Object.keys(EXTRA_LABELS) as (keyof BillExtras)[]).filter((k) => billExtras[k]).map((k) => (
               <div key={k} className="sumline"><span>{EXTRA_LABELS[k]}</span><span className="num">{k === "discount" ? "−" : ""}{jod(billExtras[k])}</span></div>
             ))}
-            <div className="sumline total"><span>المجموع</span><span className="num">{jod(preview.total)}</span></div>
-            <p className="note">الضريبة والخدمة متوزعة على كل واحد بنسبة طلبه. ومجموع الحصص بيساوي الفاتورة بالضبط.</p>
+            <div className="sumline total"><span>{t.total}</span><span className="num">{jod(preview.total)}</span></div>
+            <p className="note">{t.fairNote}</p>
           </div>
           {err && <p className="err">{err}</p>}
           <div className="sticky-foot">
-            <button className="btn ghost" onClick={back}>رجوع</button>
-            <button className="btn big paid" disabled={busy} onClick={confirm}>{busy ? "لحظة…" : "أكّد وسجّل بالدفاتر"}</button>
+            <button className="btn ghost" onClick={back}>{t.back}</button>
+            <button className="btn big paid" disabled={busy} onClick={confirm}>{busy ? t.wait : t.confirmSplit}</button>
           </div>
         </>
       )}
@@ -337,26 +339,26 @@ export function SplitFlow({ onClose, groupId }: { onClose: () => void; groupId?:
       {step === "done" && (
         <>
           <div className="big-bal">
-            <div className="lbl">{restaurant || "الفاتورة"} · دفع {shortName(payer)}</div>
+            <div className="lbl">{t.paidBy(restaurant || t.theBill, shortName(payer))}</div>
             <div className="amt num">{jod(total)}</div>
           </div>
-          <p style={{ margin: 0 }}>انضافت حصة كل واحد لدفتره، واللي عندهم التطبيق وصلهم إشعار.</p>
+          <p style={{ margin: 0 }}>{t.splitDoneNote}</p>
           {payer === me && (
             <div className="ledger">
-              {made.map((t) => {
-                const reg = registered(t.debtor);
-                const msg = waTxnMessage(t, me, nameOf(t.debtor), balanceAfter([...txns.filter((x) => x.parties.includes(t.debtor) && x.id !== t.id), t], me));
+              {made.map((tx) => {
+                const reg = registered(tx.debtor);
+                const msg = waTxnMessage(tx, me, nameOf(tx.debtor), balanceAfter([...txns.filter((x) => x.parties.includes(tx.debtor) && x.id !== tx.id), tx], me), dialect);
                 return (
-                  <div key={t.id} className="share-row">
-                    <span className="who"><b>{nameOf(t.debtor)}</b><span>{reg ? "عنده التطبيق ✓" : "ما عنده التطبيق"}</span></span>
-                    <span className="amt num">{jod(t.amount)}</span>
-                    <a className={`btn small ${reg ? "ghost" : "wa"}`} href={waLink(t.debtor, msg)} target="_blank" rel="noopener" aria-label={`ابعت واتساب لـ${nameOf(t.debtor)}`}><WhatsApp />واتساب</a>
+                  <div key={tx.id} className="share-row">
+                    <span className="who"><b>{nameOf(tx.debtor)}</b><span>{reg ? t.hasApp : t.noApp}</span></span>
+                    <span className="amt num">{jod(tx.amount)}</span>
+                    <a className={`btn small ${reg ? "ghost" : "wa"}`} href={waLink(tx.debtor, msg)} target="_blank" rel="noopener" aria-label={t.waTo(nameOf(tx.debtor))}><WhatsApp />{t.whatsapp}</a>
                   </div>
                 );
               })}
             </div>
           )}
-          <div className="sticky-foot"><button className="btn big" onClick={onClose}>تمام</button></div>
+          <div className="sticky-foot"><button className="btn big" onClick={onClose}>{t.ok}</button></div>
         </>
       )}
     </Sheet>

@@ -9,6 +9,7 @@ import { buildFriends } from "./ui/model";
 import { Login } from "./ui/Login";
 import { Home } from "./ui/Home";
 import { pendingJoin } from "./ui/invite";
+import { getDialect, LangCtx, saveDialect, STRINGS, type Dialect } from "./ui/i18n";
 
 type Toast = { id: number; text: string; push?: boolean };
 
@@ -20,6 +21,13 @@ export default function App() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [reg, setReg] = useState<Record<Phone, boolean>>({});
+  const [dialect, setDialectState] = useState<Dialect>(getDialect);
+  const lang = useMemo(() => ({
+    t: STRINGS[dialect], dialect,
+    setDialect: (d: Dialect) => { saveDialect(d); setDialectState(d); },
+  }), [dialect]);
+  const dialectRef = useRef(dialect);
+  dialectRef.current = dialect;
 
   const toast = useCallback((text: string, push = false) => {
     const id = Math.random();
@@ -46,7 +54,7 @@ export default function App() {
           // Skip my own entries, and old ones that just became visible (e.g. sample data)
           if (seen.has(t.id) || t.createdBy === me || Date.now() - t.createdAt > 120_000) continue;
           const other = t.creditor === me ? t.debtor : t.creditor;
-          toast(notificationText(t, me, balancesFor(all, me).get(other) ?? 0), true);
+          toast(notificationText(t, me, balancesFor(all, me).get(other) ?? 0, undefined, dialectRef.current), true);
         }
       }
       // The first snapshot is existing history, not news
@@ -82,7 +90,7 @@ export default function App() {
     <div className="toast-stack" aria-live="polite">
       {toasts.filter((t) => t.push).map((t) => (
         <div key={t.id} className={`toast${t.push ? " push" : ""}`} onClick={() => setToasts((all) => all.filter((x) => x.id !== t.id))}>
-          {t.push && <b>دفترنا · إشعار جديد</b>}
+          {t.push && <b>{lang.t.pushTitle}</b>}
           {t.text}
         </div>
       ))}
@@ -96,11 +104,12 @@ export default function App() {
   if (!backend || user === undefined) {
     return <div className="center" style={{ minHeight: "100dvh", justifyContent: "center" }}><div className="spinner" /></div>;
   }
-  if (!ctx) return <>{<Login backend={backend} user={user} invited={!!pendingJoin()} />}{toastsEl}</>;
   return (
-    <Ctx.Provider value={ctx}>
-      <Home />
+    <LangCtx.Provider value={lang}>
+      {!ctx ? <Login backend={backend} user={user} invited={!!pendingJoin()} /> : (
+        <Ctx.Provider value={ctx}><Home /></Ctx.Provider>
+      )}
       {toastsEl}
-    </Ctx.Provider>
+    </LangCtx.Provider>
   );
 }

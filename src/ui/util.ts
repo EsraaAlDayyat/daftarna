@@ -36,10 +36,10 @@ export const newId = () =>
 
 const dfmt = new Intl.DateTimeFormat("ar-JO", { day: "numeric", month: "short" });
 const dfmtY = new Intl.DateTimeFormat("ar-JO", { day: "numeric", month: "short", year: "numeric" });
-export function dateLabel(ms: number): string {
+export function dateLabel(ms: number, t?: { today: string; yesterday: string }): string {
   const d = new Date(ms), now = new Date();
   const days = Math.floor((new Date(now.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86_400_000);
-  if (days === 0) return "اليوم";
-  if (days === 1) return "مبارح";
+  if (days === 0) return t?.today ?? "اليوم";
+  if (days === 1) return t?.yesterday ?? "مبارح";
   return d.getFullYear() === now.getFullYear() ? dfmt.format(d) : dfmtY.format(d);
 }
