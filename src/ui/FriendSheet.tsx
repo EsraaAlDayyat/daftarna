@@ -13,10 +13,10 @@ import { balanceAfter } from "./model";
 import { dateLabel } from "./util";
 import { useDialect, type Strings } from "./i18n";
 
+// Two clear choices: money they owe me, or money I owe them
 const actions = (s: Strings): { id: ManualAction; label: string; hint: string }[] => [
-  { id: "iPaidHim", label: s.iPaid, hint: s.iPaidHint },
-  { id: "hePaidMe", label: s.hePaid, hint: s.hePaidHint },
-  { id: "iLentHim", label: s.iLent, hint: s.iLentHint },
+  { id: "iLentHim", label: s.theyOweMeTab, hint: s.theyOweMeHint },
+  { id: "hePaidMe", label: s.iOweThemTab, hint: s.iOweThemHint },
 ];
 
 function chipFor(t: Txn, me: Phone, s: Strings): { text: string; cls: string } {
@@ -24,8 +24,7 @@ function chipFor(t: Txn, me: Phone, s: Strings): { text: string; cls: string } {
   if (t.kind === "split") return { text: s.chipBill, cls: mine ? "p" : "o" };
   if (t.kind === "settle") return { text: s.chipSettle, cls: "" };
   if (t.kind === "reversal") return { text: s.chipCancel, cls: "" };
-  if (t.kind === "lend") return mine ? { text: s.chipLentThem, cls: "p" } : { text: s.chipLentMe, cls: "o" };
-  return mine ? { text: s.chipPaidThem, cls: "p" } : { text: s.chipPaidMe, cls: "o" };
+  return mine ? { text: s.theyOweMeTab, cls: "p" } : { text: s.iOweThemTab, cls: "o" };
 }
 
 type Panel = null | { kind: "sent"; txn: Txn } | { kind: "settle" } | { kind: "undo"; txn: Txn } | { kind: "rename" };
@@ -35,7 +34,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
   const { t: s, dialect } = useDialect();
   const ACTIONS = actions(s);
   const f = friends.find((x) => x.phone === phone);
-  const [action, setAction] = useState<ManualAction>("iPaidHim");
+  const [action, setAction] = useState<ManualAction>("iLentHim");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [err, setErr] = useState("");
@@ -116,7 +115,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
 
       <div className="big-bal">
         <div className="lbl">{cls === "pos" ? s.owesMe : cls === "neg" ? s.iOweThem : s.balance}</div>
-        <div className={`amt num ${cls}`}>{cls === "zero" ? s.settledCheck : jod(Math.abs(f.balance))}</div>
+        <div className={`amt num ${cls}`}>{jod(Math.abs(f.balance))}</div>
       </div>
 
       {panel?.kind === "sent" && (
@@ -133,7 +132,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
       )}
 
       <form onSubmit={record} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div className="seg" role="group" aria-label={s.amount}>
+        <div className="seg two" role="group" aria-label={s.newDebt}>
           {ACTIONS.map((a) => (
             <button type="button" key={a.id} aria-pressed={action === a.id} onClick={() => setAction(a.id)}>
               {a.label}<small>{a.hint}</small>
@@ -152,7 +151,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         </div>
         {err && <p className="err">{err}</p>}
         <button className={`btn big ${action === "hePaidMe" ? "owe" : "paid"}`} disabled={busy}>
-          {s.record(ACTIONS.find((a) => a.id === action)!.label)}
+          {s.recordIt}
         </button>
       </form>
 

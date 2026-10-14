@@ -364,3 +364,5 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 .acc-more { font-size: 13.5px; color: var(--ink-soft); }
 .acc-head[aria-expanded="true"] .acc-more::after { content: " ▴"; }
 .acc-head[aria-expanded="false"] .acc-more::after { content: " ▾"; }
+.seg.two { grid-template-columns: 1fr 1fr; }
+.seg.two button { min-height: 60px; font-size: 17px; }

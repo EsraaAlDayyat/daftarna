@@ -96,10 +96,10 @@ for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3
   await sara.getByRole("dialog").getByRole("heading", { name }).waitFor();
   if (name === "لينا") break;
 
-  await sara.getByRole("button", { name: /سلّفته/ }).click();
+  await sara.getByRole("button", { name: /بدّي منه/ }).click();
   await sara.getByLabel("المبلغ (د.أ)").fill("10");
   await sara.getByLabel("على شو؟").fill("تكسي");
-  await sara.getByRole("button", { name: "سجّل: سلّفته" }).click();
+  await sara.getByRole("button", { name: "سجّل", exact: true }).click();
   await sara.getByText("ما عنده التطبيق. ابعتله واتساب؟").waitFor();
   const href = await sara.getByRole("dialog").getByRole("link", { name: "ابعت واتساب" }).getAttribute("href");
   check(href.startsWith("https://wa.me/962782222222?text="), "WhatsApp link uses the international number", `bad WhatsApp link: ${href}`);
