@@ -3,13 +3,14 @@
 import { makeTxn, type NewTxn, type Txn } from "../core/ledger";
 import type { Phone } from "../core/phone";
 import type { RawReceipt } from "../core/receipt";
-import type { Backend, Bill, Contact, NewBill, PushState } from "./backend";
+import type { Backend, Bill, Contact, Group, NewBill, PushState } from "./backend";
 
 interface Store {
   users: Record<Phone, string>;
   contacts: Record<Phone, Contact[]>;
   txns: Txn[];
   bills: Bill[];
+  groups: Group[];
 }
 
 const KEY = "daftarna-demo-v1";
@@ -24,9 +25,9 @@ let memory: Store | null = null;
 function load(): Store {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || "null");
-    if (s && s.users) return (memory = s);
+    if (s && s.users) return (memory = { groups: [], ...s });
   } catch { /* storage unavailable */ }
-  return memory ?? (memory = { users: {}, contacts: {}, txns: [], bills: [] });
+  return memory ?? (memory = { users: {}, contacts: {}, txns: [], bills: [], groups: [] });
 }
 
 function persist(s: Store) {
@@ -90,6 +91,35 @@ export function createDemoBackend(): Backend {
       return n ? { name: n } : null;
     },
 
+    watchGroups(cb) {
+      return sub(() => cb(me ? store.groups.filter((g) => g.members.includes(me!)).map((g) => ({ ...g })) : []));
+    },
+    async createGroup(name, emoji) {
+      if (!me) throw new Error("not-signed-in");
+      const g: Group = { id: uid(), name, emoji, members: [me], names: { [me]: store.users[me] ?? "" }, createdBy: me, createdAt: Date.now() };
+      store.groups.push(g);
+      save();
+      return { ...g };
+    },
+    async addGroupMember(groupId, c) {
+      const g = store.groups.find((x) => x.id === groupId);
+      if (!me || !g || !g.members.includes(me)) throw new Error("permission-denied");
+      if (!g.members.includes(c.phone)) g.members = [...g.members, c.phone];
+      g.names = { ...g.names, [c.phone]: g.names[c.phone] || c.name };
+      save();
+    },
+    async getGroup(groupId) {
+      const g = store.groups.find((x) => x.id === groupId);
+      return g ? { ...g } : null;
+    },
+    async joinGroup(groupId) {
+      const g = store.groups.find((x) => x.id === groupId);
+      if (!me || !g) throw new Error("not-found");
+      if (!g.members.includes(me)) g.members = [...g.members, me];
+      g.names = { ...g.names, [me]: store.users[me] ?? "" };
+      save();
+    },
+
     watchTxns(cb) {
       // Same privacy rule as the server: only entries I'm a party to
       return sub(() => cb(me ? store.txns.filter((t) => t.parties.includes(me!)) : []));
@@ -140,6 +170,13 @@ export function seedDemo(backendMe: Phone, myName: string) {
   store.contacts[AHMAD] = [{ phone: backendMe, name: myName }];
   store.contacts[LINA] = [{ phone: backendMe, name: myName }];
   const day = 86_400_000, now = Date.now();
+  store.groups = store.groups.filter((g) => !g.members.includes(backendMe));
+  store.groups.push(
+    { id: uid(), name: "الشلة", emoji: "🍕", members: [backendMe, AHMAD, LINA, OMAR],
+      names: { [backendMe]: myName, [AHMAD]: "أحمد", [LINA]: "لينا", [OMAR]: "عمر" }, createdBy: backendMe, createdAt: now - 7 * day },
+    { id: uid(), name: "الشغل", emoji: "💼", members: [backendMe, AHMAD],
+      names: { [backendMe]: myName, [AHMAD]: "أحمد" }, createdBy: backendMe, createdAt: now - 5 * day },
+  );
   const mk = (t: NewTxn, ago: number) => makeTxn(t, uid(), now - ago * day);
   store.txns.push(
     mk({ creditor: backendMe, debtor: AHMAD, amount: 12000, kind: "lend", note: "تكسي المطار", createdBy: backendMe, createdByName: myName }, 6),

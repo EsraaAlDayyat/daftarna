@@ -4,15 +4,15 @@ import {
   getAuth, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, signOut as fbSignOut,
 } from "firebase/auth";
 import {
-  collection, doc, getDoc, getFirestore, onSnapshot, query, serverTimestamp, setDoc, Timestamp,
-  where, writeBatch,
+  collection, doc, getDoc, getFirestore, onSnapshot, query, runTransaction, serverTimestamp, setDoc, Timestamp,
+  where, writeBatch, type DocumentData,
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getMessaging, getToken, isSupported } from "firebase/messaging";
 import { makeTxn, type NewTxn, type Txn } from "../core/ledger";
 import type { Phone } from "../core/phone";
 import type { RawReceipt } from "../core/receipt";
-import type { Backend, Contact, NewBill, PushState } from "./backend";
+import type { Backend, Contact, Group, NewBill, PushState } from "./backend";
 import { blobToBase64, isIos, isStandalone } from "../ui/util";
 
 export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string | undefined): Backend {
@@ -31,6 +31,28 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
     createdAt: d.createdAt instanceof Timestamp ? d.createdAt.toMillis() : Date.now(),
   });
 
+  const toGroup = (id: string, d: DocumentData): Group => ({
+    id, name: d.name, emoji: d.emoji, members: d.members ?? [], names: d.names ?? {}, createdBy: d.createdBy,
+    createdAt: d.createdAt instanceof Timestamp ? d.createdAt.toMillis() : Date.now(),
+  });
+  let myName = "";
+
+  /** Adds one person to a group (read, merge, write in a transaction so concurrent joins don't clash). */
+  async function addToGroup(groupId: string, phone: Phone, name: string) {
+    const ref = doc(db, "groups", groupId);
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) throw new Error("not-found");
+      const g = snap.data();
+      const members: Phone[] = g.members ?? [];
+      if (members.includes(phone) && g.names?.[phone]) return;
+      tx.update(ref, {
+        members: members.includes(phone) ? members : [...members, phone],
+        names: { ...(g.names ?? {}), [phone]: g.names?.[phone] || name },
+      });
+    });
+  }
+
   return {
     mode: "firebase",
     onAuth(cb) {
@@ -40,7 +62,8 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
         if (!u || !u.phoneNumber) { me = null; cb(null); return; }
         me = { uid: u.uid, phone: u.phoneNumber };
         unsubProfile = onSnapshot(doc(db, "users", u.uid), (s) => {
-          cb({ phone: u.phoneNumber!, name: (s.data()?.name as string) || null });
+          myName = (s.data()?.name as string) || "";
+          cb({ phone: u.phoneNumber!, name: myName || null });
         }, () => cb({ phone: u.phoneNumber!, name: null }));
       });
       return () => { un(); unsubProfile?.(); };
@@ -73,6 +96,28 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
       const s = await getDoc(doc(db, "phones", phone));
       return s.exists() ? { name: String(s.data().name ?? "") } : null;
     },
+
+    watchGroups(cb) {
+      const m = need();
+      const q = query(collection(db, "groups"), where("members", "array-contains", m.phone));
+      return onSnapshot(q, (s) => cb(s.docs.map((d) => toGroup(d.id, d.data({ serverTimestamps: "estimate" })))));
+    },
+    async createGroup(name, emoji) {
+      const m = need();
+      const ref = doc(collection(db, "groups"));
+      const data = { name, emoji, members: [m.phone], names: { [m.phone]: myName }, createdBy: m.phone };
+      await setDoc(ref, { ...data, createdAt: serverTimestamp() });
+      return { ...data, id: ref.id, createdAt: Date.now() };
+    },
+    async addGroupMember(groupId, c) { need(); await addToGroup(groupId, c.phone, c.name); },
+    async getGroup(groupId) {
+      need();
+      try {
+        const s = await getDoc(doc(db, "groups", groupId));
+        return s.exists() ? toGroup(s.id, s.data()) : null;
+      } catch { return null; }
+    },
+    async joinGroup(groupId) { const m = need(); await addToGroup(groupId, m.phone, myName); },
 
     watchTxns(cb) {
       const m = need();

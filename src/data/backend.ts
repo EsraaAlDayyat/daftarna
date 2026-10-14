@@ -27,6 +27,17 @@ export interface Bill {
 
 export type NewBill = Omit<Bill, "id" | "createdAt" | "parties" | "createdBy">;
 
+export interface Group {
+  id: string;
+  name: string;
+  emoji: string;
+  members: Phone[];
+  /** Display name of each member, as they or the person who added them wrote it. */
+  names: Record<Phone, string>;
+  createdBy: Phone;
+  createdAt: number;
+}
+
 export interface PhoneSignIn {
   confirm(code: string): Promise<void>;
 }
@@ -45,6 +56,15 @@ export interface Backend {
   saveContact(c: Contact): Promise<void>;
   /** Returns the user's display name if this number has an account. */
   lookupUser(phone: Phone): Promise<{ name: string } | null>;
+
+  watchGroups(cb: (g: Group[]) => void): Unsub;
+  createGroup(name: string, emoji: string): Promise<Group>;
+  /** Adds someone (by phone) to a group I'm in. */
+  addGroupMember(groupId: string, c: Contact): Promise<void>;
+  /** Group details from an invite link, before joining. null = link is wrong. */
+  getGroup(groupId: string): Promise<Group | null>;
+  /** Adds me to a group from its invite link. */
+  joinGroup(groupId: string): Promise<void>;
 
   watchTxns(cb: (t: Txn[]) => void): Unsub;
   /** Writes entries (and optionally their bill) in one atomic batch. */

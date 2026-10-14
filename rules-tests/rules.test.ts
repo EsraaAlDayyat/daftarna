@@ -135,6 +135,46 @@ describe("bills", () => {
   });
 });
 
+describe("groups", () => {
+  const group = (o: Record<string, unknown> = {}) => ({
+    name: "الشلة", emoji: "🍕", members: [S], names: { [S]: "سارة" }, createdBy: S, createdAt: serverTimestamp(), ...o,
+  });
+  const seed = async () => {
+    await setDoc(doc(as("s", S), "groups/g1"), group());
+  };
+
+  it("anyone can create a group with only themselves in it", async () => {
+    await assertSucceeds(setDoc(doc(as("s", S), "groups/g1"), group()));
+    await assertFails(setDoc(doc(as("s", S), "groups/g2"), group({ members: [S, A], names: { [S]: "سارة", [A]: "أحمد" } })));
+    await assertFails(setDoc(doc(as("s", S), "groups/g3"), group({ createdBy: A })));
+  });
+
+  it("a member can add people; groups can't be listed by outsiders", async () => {
+    await seed();
+    await assertSucceeds(updateDoc(doc(as("s", S), "groups/g1"), { members: [S, A], names: { [S]: "سارة", [A]: "أحمد" } }));
+    await assertSucceeds(getDocs(query(collection(as("a", A), "groups"), where("members", "array-contains", A))));
+    await assertFails(getDocs(query(collection(as("l", L), "groups"), where("members", "array-contains", S))));
+  });
+
+  it("someone with the link can join, but only as themselves", async () => {
+    await seed();
+    const dbL = as("l", L);
+    await assertSucceeds(getDoc(doc(dbL, "groups/g1")));
+    await assertFails(updateDoc(doc(dbL, "groups/g1"), { members: [S, A], names: { [S]: "سارة", [A]: "أحمد" } }));
+    await assertFails(updateDoc(doc(dbL, "groups/g1"), { members: [S, L], names: { [S]: "x", [L]: "لينا" } }));
+    await assertFails(updateDoc(doc(dbL, "groups/g1"), { members: [S, L], names: { [S]: "سارة", [L]: "لينا" }, name: "غير" }));
+    await assertSucceeds(updateDoc(doc(dbL, "groups/g1"), { members: [S, L], names: { [S]: "سارة", [L]: "لينا" } }));
+  });
+
+  it("nobody can be removed, and names must match members", async () => {
+    await seed();
+    await updateDoc(doc(as("s", S), "groups/g1"), { members: [S, A], names: { [S]: "سارة", [A]: "أحمد" } });
+    await assertFails(updateDoc(doc(as("s", S), "groups/g1"), { members: [S], names: { [S]: "سارة" } }));
+    await assertFails(updateDoc(doc(as("s", S), "groups/g1"), { members: [S, A, L], names: { [S]: "سارة", [A]: "أحمد" } }));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "groups/g1")));
+  });
+});
+
 describe("profile and phone directory", () => {
   it("can only claim my own verified number", async () => {
     await assertSucceeds(setDoc(doc(as("s", S), "phones", S), { uid: "s", name: "سارة" }));
