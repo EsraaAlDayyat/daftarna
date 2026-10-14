@@ -62,7 +62,7 @@ export function Home() {
 
         <div className="hero-card">
           <div className="lbl">{net > 0 ? t.netMine : net < 0 ? t.netTheirs : t.netNone}</div>
-          <div className="big num">{net === 0 ? t.settledAll : <>{formatJod(Math.abs(net))} <small>{t.jod}</small></>}</div>
+          <div className="big num"><>{formatJod(Math.abs(net))} <small>{t.jod}</small></></div>
           <div className="pills">
             <div className="pill"><span>{t.owedToMe}</span><b className="num">{formatJod(owedToMe)}</b></div>
             <div className="pill"><span>{t.iOwe}</span><b className="num">{formatJod(iOwe)}</b></div>

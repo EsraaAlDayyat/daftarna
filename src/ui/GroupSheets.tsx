@@ -100,10 +100,10 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit }: {
     <Sheet title={g.name} lead={<span className="g-emoji" aria-hidden="true">{g.emoji}</span>} onClose={onClose} full>
       <div className="muted" style={{ marginTop: -8 }}>{t.people(g.members.length)}</div>
 
-      {!alone && (
-        <div className={`net-strip ${net > 0 ? "pos" : net < 0 ? "neg" : "zero"}`}>
-          <span>{net > 0 ? t.groupOwesMe : net < 0 ? t.iOweGroup : t.groupSettled}</span>
-          {net !== 0 && <b className="num">{jod(Math.abs(net))}</b>}
+      {net !== 0 && (
+        <div className={`net-strip ${net > 0 ? "pos" : "neg"}`}>
+          <span>{net > 0 ? t.groupOwesMe : t.iOweGroup}</span>
+          <b className="num">{jod(Math.abs(net))}</b>
         </div>
       )}
 
