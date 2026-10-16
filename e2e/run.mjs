@@ -86,9 +86,9 @@ check(true, "sign-in flow");
 
 // ───────── Add friends and a manual entry ─────────
 const tab = (p, name) => p.getByRole("navigation").getByRole("button", { name }).click();
-await tab(sara, /تصفية حساباتي/);
+await tab(sara, /أصحابي/);
 for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3333"]]) {
-  await sara.getByRole("button", { name: "صاحب", exact: true }).first().click();
+  await sara.getByRole("button", { name: "ضيف برقمه" }).click();
   await sara.getByLabel("الاسم").fill(name);
   await sara.getByLabel("رقم التلفون").fill(phone);
   if (name === "أحمد") await shot(sara, "add-friend");
@@ -108,6 +108,10 @@ for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3
 }
 await sara.getByRole("button", { name: "سكّر" }).click();
 await shot(sara, "home-two-friends");
+const friendRow = await text(sara, ".row:has-text('أحمد') .bal");
+check(friendRow.includes("١٠ د.أ") && friendRow.includes("بدّي منه"), "friends tab shows Ahmad owes me 10", `row: ${friendRow}`);
+check((await sara.locator(".row:has-text('لينا')").count()) === 1, "friends tab lists Lina too");
+await tab(sara, /تصفية حساباتي/);
 const ahmadRow = await text(sara, ".acc.in .row:has-text('أحمد') .bal");
 check(ahmadRow.includes("١٠ د.أ"), "Ahmad is under 'owed to me' with his amount", `Ahmad's row: ${ahmadRow}`);
 check((await text(sara, ".acc.in .acc-sum")).includes("١٠"), "total owed to me");

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { normalizePhone, type Phone } from "../core/phone";
+import { displayPhone, normalizePhone, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Sheet } from "./Sheet";
 import { useT } from "./i18n";
+import { canPickContacts, pickContacts } from "./contacts";
 
 export function AddFriendSheet({ onClose, onAdded, groupId }: { onClose: () => void; onAdded: (p: Phone) => void; groupId?: string }) {
   const { backend, me, contacts, toast, groups } = useApp();
@@ -36,6 +37,15 @@ export function AddFriendSheet({ onClose, onAdded, groupId }: { onClose: () => v
   return (
     <Sheet title={group ? t.addToGroupTitle(group.name) : t.newFriend} onClose={onClose}>
       <form className="form" onSubmit={save}>
+        {canPickContacts() && (
+          <button type="button" className="btn soft full" onClick={async () => {
+            try {
+              const { picked } = await pickContacts();
+              if (picked[0]) { setName(picked[0].name); setPhone(displayPhone(picked[0].phone)); setErr(""); }
+              else setErr(t.badPhone);
+            } catch { /* closed the picker */ }
+          }}><span aria-hidden="true">📇</span>{t.fromContacts}</button>
+        )}
         <div className="full">
           <label className="l" htmlFor="fname">{t.name}</label>
           <input id="fname" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t.namePhFriend} maxLength={40} />

@@ -15,6 +15,7 @@ import { groupBalance, type Friend } from "./model";
 import { pendingJoin } from "./invite";
 import { dateLabel } from "./util";
 import { useT } from "./i18n";
+import { canPickContacts, pickContacts } from "./contacts";
 
 type Open =
   | { kind: "friend"; phone: Phone; back?: Open }
@@ -26,7 +27,7 @@ type Open =
   | { kind: "join"; id: string }
   | null;
 
-type Tab = "groups" | "accounts";
+type Tab = "groups" | "friends" | "accounts";
 const TAB_KEY = "daftarna-tab";
 
 export function Home() {
@@ -37,7 +38,10 @@ export function Home() {
     return j ? { kind: "join", id: j } : null;
   });
   const [tab, setTabState] = useState<Tab>(() => {
-    try { return localStorage.getItem(TAB_KEY) === "accounts" ? "accounts" : "groups"; } catch { return "groups"; }
+    try {
+      const v = localStorage.getItem(TAB_KEY);
+      return v === "accounts" || v === "friends" ? v : "groups";
+    } catch { return "groups"; }
   });
   const setTab = (x: Tab) => { setTabState(x); try { localStorage.setItem(TAB_KEY, x); } catch { /* */ } window.scrollTo(0, 0); };
   const [accPart, setAccPart] = useState<"in" | "out" | null>("in");
@@ -57,7 +61,7 @@ export function Home() {
         <div className="topbar">
           <div>
             <div className="hello">{t.hi(myName)}</div>
-            <h1>{tab === "groups" ? t.appName : t.tabAccounts}</h1>
+            <h1>{tab === "groups" ? t.appName : tab === "friends" ? t.tabFriends : t.tabAccounts}</h1>
           </div>
           <button className="me-btn" onClick={() => setOpen({ kind: "settings" })} aria-label={t.settings}>
             <Avatar name={myName} id={me} size={46} />
@@ -100,14 +104,19 @@ export function Home() {
               </button>
             </div>
           </section>
+        ) : tab === "friends" ? (
+          <Friends friends={friends} onFriend={openFriend} onAdd={() => setOpen({ kind: "add" })} />
         ) : (
-          <Accounts friends={friends} onFriend={openFriend} onAdd={() => setOpen({ kind: "add" })} part={accPart} setPart={setAccPart} />
+          <Accounts friends={friends} onFriend={openFriend} part={accPart} setPart={setAccPart} />
         )}
       </div>
 
       <nav className="tabbar" inert={!!open} aria-hidden={open ? true : undefined} aria-label={t.appName}>
         <button aria-current={tab === "groups" ? "page" : undefined} onClick={() => setTab("groups")}>
           <span aria-hidden="true">👥</span>{t.tabGroups}
+        </button>
+        <button aria-current={tab === "friends" ? "page" : undefined} onClick={() => setTab("friends")}>
+          <span aria-hidden="true">🤝</span>{t.tabFriends}
         </button>
         <button aria-current={tab === "accounts" ? "page" : undefined} onClick={() => setTab("accounts")}>
           <span aria-hidden="true">🧾</span>{t.tabAccounts}
@@ -138,26 +147,16 @@ export function Home() {
 }
 
 /** "Settle my accounts" tab: what people owe me, what I owe, and who exactly. */
-function Accounts({ friends, onFriend, onAdd, part: openPart, setPart: setOpenPart }: {
-  friends: Friend[]; onFriend: (p: Phone) => void; onAdd: () => void;
+function Accounts({ friends, onFriend, part: openPart, setPart: setOpenPart }: {
+  friends: Friend[]; onFriend: (p: Phone) => void;
   part: "in" | "out" | null; setPart: (p: "in" | "out" | null) => void;
 }) {
   const t = useT();
   const theyOwe = friends.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
   const iOwe = friends.filter((f) => f.balance < 0).sort((a, b) => a.balance - b.balance);
-  const rest = friends.filter((f) => f.balance === 0);
   const sum = (l: Friend[]) => l.reduce((s, f) => s + Math.abs(f.balance), 0);
 
-  const row = (f: Friend) => (
-    <button key={f.phone} className="row" onClick={() => onFriend(f.phone)}>
-      <Avatar name={f.name} id={f.phone} />
-      <span className="who">
-        <b>{f.name}</b>
-        <span>{f.txns[0] ? `${f.txns[0].note || t.entry} · ${dateLabel(f.txns[0].createdAt, t)}` : t.nothingYet}</span>
-      </span>
-      {f.balance !== 0 && <span className={`bal num ${f.balance > 0 ? "pos" : "neg"}`}>{jod(Math.abs(f.balance))}</span>}
-    </button>
-  );
+  const row = (f: Friend) => <FriendRow key={f.phone} f={f} onClick={() => onFriend(f.phone)} />;
 
   const part = (key: "in" | "out", title: string, list: Friend[]) => {
     const isOpen = openPart === key;
@@ -177,21 +176,77 @@ function Accounts({ friends, onFriend, onAdd, part: openPart, setPart: setOpenPa
     <>
       {part("in", t.owedToMe, theyOwe)}
       {part("out", t.iOwe, iOwe)}
-      <section aria-labelledby="rest-h">
-        <div className="section-h">
-          <h2 id="rest-h">{rest.length ? t.restFriends : t.yourFriends}</h2>
-          <button className="btn small soft" onClick={onAdd}><Plus />{t.friend}</button>
-        </div>
-        <div className="list">
-          {!friends.length ? (
-            <div className="empty">
-              <div className="empty-emoji" aria-hidden="true">🤝</div>
-              <h3>{t.noOneYet}</h3>
-              <div>{t.noOneYetHint}</div>
-            </div>
-          ) : rest.map(row)}
-        </div>
-      </section>
     </>
+  );
+}
+
+function FriendRow({ f, onClick, showLabel }: { f: Friend; onClick: () => void; showLabel?: boolean }) {
+  const t = useT();
+  return (
+    <button className="row" onClick={onClick}>
+      <Avatar name={f.name} id={f.phone} />
+      <span className="who">
+        <b>{f.name}</b>
+        <span>{f.txns[0] ? `${f.txns[0].note || t.entry} · ${dateLabel(f.txns[0].createdAt, t)}` : t.nothingYet}</span>
+      </span>
+      {f.balance !== 0 && (
+        <span className={`bal num ${f.balance > 0 ? "pos" : "neg"}`}>
+          {jod(Math.abs(f.balance))}
+          {showLabel && <small>{f.balance > 0 ? t.theyOweMeTab : t.iOweThemTab}</small>}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/** "My friends": everyone, with what each owes or is owed, plus adding from the phone's contacts. */
+function Friends({ friends, onFriend, onAdd }: { friends: Friend[]; onFriend: (p: Phone) => void; onAdd: () => void }) {
+  const t = useT();
+  const { backend, me, toast } = useApp();
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const query = q.trim();
+  const digits = query.replace(/\D/g, "");
+  const shown = friends
+    .filter((f) => !query || f.name.includes(query) || (digits && f.phone.includes(digits)))
+    .sort((a, b) => a.name.localeCompare(b.name, "ar"));
+
+  async function fromContacts() {
+    setBusy(true);
+    try {
+      const { picked, skipped } = await pickContacts();
+      const fresh = picked.filter((c) => c.phone !== me);
+      for (const c of fresh) await backend.saveContact(c);
+      if (fresh.length === 1 && !skipped) onFriend(fresh[0].phone);
+      else if (fresh.length) toast(t.contactsAdded(fresh.length) + (skipped ? `، ${t.contactsSkipped(skipped)}` : " ✓"));
+      else if (skipped) toast(t.contactsSkipped(skipped).replace(/^و/, ""));
+    } catch {
+      /* closed the picker */
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <section aria-label={t.tabFriends} className="stack">
+      <div className="actions">
+        {canPickContacts() && (
+          <button className="btn" disabled={busy} onClick={fromContacts}><span aria-hidden="true">📇</span>{t.fromContacts}</button>
+        )}
+        <button className="btn soft" onClick={onAdd}><Plus />{t.addByNumber}</button>
+      </div>
+      {friends.length > 5 && (
+        <input type="search" placeholder={t.search} value={q} onChange={(e) => setQ(e.target.value)} aria-label={t.search} />
+      )}
+      <div className="list">
+        {!friends.length ? (
+          <div className="empty">
+            <div className="empty-emoji" aria-hidden="true">🤝</div>
+            <h3>{t.noOneYet}</h3>
+            <div>{t.noFriendsHint}</div>
+          </div>
+        ) : !shown.length ? (
+          <div className="empty">{t.noMatch(q)}</div>
+        ) : shown.map((f) => <FriendRow key={f.phone} f={f} showLabel onClick={() => onFriend(f.phone)} />)}
+      </div>
+    </section>
   );
 }
