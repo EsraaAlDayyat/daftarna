@@ -1,5 +1,5 @@
 // Receipt reading with Claude. Kept free of Firebase so it can be unit-tested.
-import { RECEIPT_PROMPT, RECEIPT_SCHEMA, type RawReceipt } from "../../src/core/receipt";
+import { receiptPrompt, RECEIPT_SCHEMA, type RawReceipt } from "../../src/core/receipt";
 
 export const DEFAULT_MODEL = "claude-haiku-5-5";
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -11,6 +11,8 @@ export class ReceiptError extends Error {
 
 export async function readReceiptWithClaude(opts: {
   image: string; mediaType: string; apiKey: string; model?: string; fetchFn?: typeof fetch;
+  /** What each person said they ordered, so the model can say who had each item. */
+  orders?: { id: string; text: string }[];
 }): Promise<RawReceipt> {
   const { image, apiKey } = opts;
   const mediaType = ALLOWED.includes(opts.mediaType) ? opts.mediaType : "image/jpeg";
@@ -31,7 +33,7 @@ export async function readReceiptWithClaude(opts: {
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: mediaType, data: image } },
-          { type: "text", text: RECEIPT_PROMPT },
+          { type: "text", text: receiptPrompt(opts.orders) },
         ],
       }],
       output_config: { format: { type: "json_schema", schema: RECEIPT_SCHEMA } },

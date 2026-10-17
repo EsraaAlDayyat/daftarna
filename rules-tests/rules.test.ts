@@ -175,6 +175,33 @@ describe("groups", () => {
   });
 });
 
+describe("group orders", () => {
+  const order = (o: Record<string, unknown> = {}) => ({
+    groupId: "g1", title: "غدا", lines: {}, parties: [S, A], createdBy: S, createdAt: serverTimestamp(), status: "open", ...o,
+  });
+  const seedGroup = () => env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), "groups/g1"), { name: "الشلة", emoji: "🍕", members: [S, A], names: { [S]: "سارة", [A]: "أحمد" }, createdBy: S, createdAt: new Date() });
+  });
+
+  it("a group member can start an order for the group", async () => {
+    await seedGroup();
+    await assertSucceeds(setDoc(doc(as("s", S), "orders/o1"), order()));
+    await assertFails(setDoc(doc(as("s", S), "orders/o2"), order({ parties: [S, A, L] })));
+    await assertFails(setDoc(doc(as("l", L), "orders/o3"), order({ parties: [L], createdBy: L })));
+  });
+
+  it("members fill in lines and close it; outsiders can't see it", async () => {
+    await seedGroup();
+    await setDoc(doc(as("s", S), "orders/o1"), order());
+    await assertSucceeds(updateDoc(doc(as("a", A), "orders/o1"), { lines: { [S]: "شاورما", [A]: "فتوش" } }));
+    await assertFails(updateDoc(doc(as("a", A), "orders/o1"), { lines: { [L]: "حمص" } }));
+    await assertFails(updateDoc(doc(as("a", A), "orders/o1"), { parties: [S, A, L] }));
+    await assertSucceeds(updateDoc(doc(as("s", S), "orders/o1"), { status: "done" }));
+    await assertFails(getDoc(doc(as("l", L), "orders/o1")));
+    await assertFails(deleteDoc(doc(as("s", S), "orders/o1")));
+  });
+});
+
 describe("comments", () => {
   const c = (o: Record<string, unknown> = {}) => ({
     txnId: "t1", by: A, byName: "أحمد", text: "دفعتلك نصها كاش", parties: [S, A], createdAt: serverTimestamp(), ...o,

@@ -3,7 +3,7 @@
 import { makeTxn, type NewTxn, type Txn } from "../core/ledger";
 import type { Phone } from "../core/phone";
 import type { RawReceipt } from "../core/receipt";
-import type { Backend, Bill, Contact, Group, NewBill, PushState, TxnComment } from "./backend";
+import type { Backend, Bill, Contact, Group, NewBill, Order, PushState, TxnComment } from "./backend";
 
 interface Store {
   users: Record<Phone, string>;
@@ -12,6 +12,7 @@ interface Store {
   bills: Bill[];
   groups: Group[];
   comments: TxnComment[];
+  orders: Order[];
 }
 
 const KEY = "daftarna-demo-v1";
@@ -26,9 +27,9 @@ let memory: Store | null = null;
 function load(): Store {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || "null");
-    if (s && s.users) return (memory = { groups: [], comments: [], ...s });
+    if (s && s.users) return (memory = { groups: [], comments: [], orders: [], ...s });
   } catch { /* storage unavailable */ }
-  return memory ?? (memory = { users: {}, contacts: {}, txns: [], bills: [], groups: [], comments: [] });
+  return memory ?? (memory = { users: {}, contacts: {}, txns: [], bills: [], groups: [], comments: [], orders: [] });
 }
 
 function persist(s: Store) {
@@ -118,6 +119,31 @@ export function createDemoBackend(): Backend {
       if (!me || !g) throw new Error("not-found");
       if (!g.members.includes(me)) g.members = [...g.members, me];
       g.names = { ...g.names, [me]: store.users[me] ?? "" };
+      save();
+    },
+
+    watchOrders(cb) {
+      return sub(() => cb(me ? store.orders.filter((o) => o.parties.includes(me!)).map((o) => ({ ...o, lines: { ...o.lines } })) : []));
+    },
+    async createOrder(group, title) {
+      if (!me || !group.members.includes(me)) throw new Error("permission-denied");
+      const o: Order = {
+        id: uid(), groupId: group.id, title, lines: {}, parties: [...group.members], createdBy: me, createdAt: Date.now(), status: "open",
+      };
+      store.orders.push(o);
+      save();
+      return { ...o };
+    },
+    async setOrderLine(orderId, phone, text) {
+      const o = store.orders.find((x) => x.id === orderId);
+      if (!me || !o || !o.parties.includes(me) || !o.parties.includes(phone)) throw new Error("permission-denied");
+      o.lines = { ...o.lines, [phone]: text };
+      save();
+    },
+    async closeOrder(orderId) {
+      const o = store.orders.find((x) => x.id === orderId);
+      if (!me || !o || !o.parties.includes(me)) throw new Error("permission-denied");
+      o.status = "done";
       save();
     },
 

@@ -23,7 +23,13 @@ export const readReceipt = onCall(
   { secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 90, memory: "512MiB", enforceAppCheck: false },
   async (req) => {
     if (!req.auth?.token.phone_number) throw new HttpsError("unauthenticated", "سجّل دخول أول");
-    const { image, mediaType } = (req.data ?? {}) as { image?: string; mediaType?: string };
+    const { image, mediaType, orders } = (req.data ?? {}) as { image?: string; mediaType?: string; orders?: unknown };
+    // Optional list of who ordered what; ids are short placeholders chosen by the app
+    const orderList = Array.isArray(orders)
+      ? orders.slice(0, 50)
+        .filter((o): o is { id: string; text: string } => typeof o?.id === "string" && typeof o?.text === "string")
+        .map((o) => ({ id: o.id.slice(0, 8), text: o.text.slice(0, 200) }))
+      : [];
 
     // Daily quota so the API key can't be abused
     const day = new Date().toISOString().slice(0, 10);
@@ -39,7 +45,7 @@ export const readReceipt = onCall(
     try {
       return await readReceiptWithClaude({
         image: image ?? "", mediaType: mediaType ?? "image/jpeg",
-        apiKey: ANTHROPIC_API_KEY.value(), model: RECEIPT_MODEL.value(),
+        apiKey: ANTHROPIC_API_KEY.value(), model: RECEIPT_MODEL.value(), orders: orderList,
       });
     } catch (e) {
       if (e instanceof ReceiptError) {

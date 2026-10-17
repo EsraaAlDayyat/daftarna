@@ -85,10 +85,12 @@ function InviteCard({ group }: { group: Group }) {
   );
 }
 
-export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit }: {
+export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit, onOrder }: {
   id: string; onClose: () => void; onFriend: (p: Phone) => void; onAddMember: () => void; onSplit: () => void;
+  onOrder: (orderId: string) => void;
 }) {
-  const { groups, friends, me, myName } = useApp();
+  const { groups, friends, me, myName, orders, backend, toast } = useApp();
+  const [starting, setStarting] = useState(false);
   const t = useT();
   const g = groups.find((x) => x.id === id);
   if (!g) return null;
@@ -105,6 +107,30 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit }: {
           <span>{net > 0 ? t.groupOwesMe : t.iOweGroup}</span>
           <b className="num">{jod(Math.abs(net))}</b>
         </div>
+      )}
+
+      {!alone && (
+        <section className="orders">
+          <div className="section-h">
+            <h3>{t.orders}</h3>
+            <button className="btn small" disabled={starting} onClick={async () => {
+              setStarting(true);
+              try {
+                const o = await backend.createOrder(g, t.orderTitle(new Date().toLocaleDateString("ar-JO", { weekday: "long" })));
+                onOrder(o.id);
+              } catch { toast(t.tryAgain); setStarting(false); }
+            }}>🛒 {t.newOrder}</button>
+          </div>
+          {orders.filter((o) => o.groupId === g.id && o.status === "open").sort((a, b) => b.createdAt - a.createdAt).map((o) => {
+            const filled = o.parties.filter((p) => o.lines[p]?.trim()).length;
+            return (
+              <button key={o.id} className="row" onClick={() => onOrder(o.id)}>
+                <span className="g-emoji" aria-hidden="true">🛒</span>
+                <span className="who"><b>{o.title}</b><span>{t.orderFilled(filled, o.parties.length)}</span></span>
+              </button>
+            );
+          })}
+        </section>
       )}
 
       <InviteCard group={g} />

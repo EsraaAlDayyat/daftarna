@@ -158,6 +158,27 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ───── Group orders: who wants what, before the bill ─────
+    match /orders/{id} {
+      allow read: if signedIn() && me() in resource.data.parties;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['groupId', 'title', 'lines', 'parties', 'createdBy', 'createdAt', 'status'])
+        && request.resource.data.createdBy == me()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.status == 'open'
+        && request.resource.data.title is string && request.resource.data.title.size() <= 60
+        && request.resource.data.lines is map && request.resource.data.lines.size() == 0
+        && me() in request.resource.data.parties
+        && request.resource.data.parties.size() <= 50
+        && get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.members.hasAll(request.resource.data.parties);
+      allow update: if signedIn() && me() in resource.data.parties
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lines', 'status', 'title'])
+        && request.resource.data.lines.keys().hasOnly(resource.data.parties)
+        && request.resource.data.status in ['open', 'done']
+        && request.resource.data.title is string && request.resource.data.title.size() <= 60;
+      allow delete: if false;
+    }
+
     // ───── Comments on an entry ─────
     // Both parties of the entry can read and add them. They can't be edited or deleted.
     match /comments/{id} {

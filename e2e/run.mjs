@@ -200,6 +200,37 @@ await sara.getByRole("button", { name: "تمام، ورّيني الحساب" })
 await sara.getByRole("heading", { name: "تصفية حساباتي" }).waitFor();
 const owedRows = await sara.locator(".acc.in .row").allInnerTexts();
 check(["أحمد", "لينا", "عمر"].every((n) => owedRows.some((r) => r.includes(n))), "after the split, the accounts tab lists everyone who owes me", `rows: ${owedRows.join(" | ")}`);
+
+// ───────── Group order: write who wants what, then the bill assigns itself ─────────
+await tab(sara, /جروباتي/);
+await sara.locator(".gtile", { hasText: "الشلة" }).click();
+await sara.getByRole("button", { name: /طلب جديد/ }).click();
+await sara.getByLabel(/طلب أنا/).fill("شاورما");
+await sara.getByLabel("طلب أحمد").fill("شاورما وليمون");
+await sara.getByLabel("طلب لينا").fill("فتوش وحمص ومشاوي");
+await sara.getByLabel("طلب لينا").blur();
+await sara.waitForTimeout(300);
+await shot(sara, "order");
+await sara.getByRole("button", { name: /حمّل الفاتورة/ }).click();
+await sara.locator("input[type=file]").nth(1).setInputFiles({ name: "bill.png", mimeType: "image/png", buffer: onePixelPng });
+await sara.getByRole("heading", { name: "شو طلبتوا؟" }).waitFor();
+check(await sara.getByText("طابقنا الأصناف مع الطلبات").isVisible(), "says the items were matched to the order");
+await sara.getByRole("button", { name: "التالي: مين كان موجود" }).click();
+check((await sara.locator(".people .pchip[aria-pressed=true]").count()) === 3, "everyone who ordered starts as present");
+await sara.getByRole("button", { name: "التالي: مين أكل شو" }).click();
+await shot(sara, "order-assign");
+const pressed = async (item, who) => (await sara.locator(".assign", { hasText: item }).getByRole("button", { name: who, exact: true }).getAttribute("aria-pressed")) === "true";
+check(await pressed("شاورما", "أنا") && await pressed("شاورما", "أحمد") && await pressed("Mixed Grill", "لينا") && await pressed("ليمون", "أحمد"),
+  "each item is already assigned to whoever ordered it");
+check((await sara.getByRole("button", { name: /ضايل/ }).count()) === 0, "nothing left to assign");
+await sara.getByRole("button", { name: "التالي: كل واحد قديش" }).click();
+await sara.getByRole("button", { name: "تمام، سجّل" }).click();
+await sara.getByRole("button", { name: "تمام، ورّيني الحساب" }).click();
+await tab(sara, /جروباتي/);
+await sara.locator(".gtile", { hasText: "الشلة" }).click();
+check((await sara.getByRole("dialog").locator(".orders .row").count()) === 0, "the order closes once its bill is recorded");
+await sara.getByRole("button", { name: "سكّر" }).click();
+await tab(sara, /تصفية حساباتي/);
 await shot(sara, "home-after-split");
 await noHorizontalScroll(sara, "home");
 

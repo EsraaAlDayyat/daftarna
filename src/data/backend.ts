@@ -49,6 +49,19 @@ export interface TxnComment {
   createdAt: number;
 }
 
+/** A group order: who wants what, before the bill arrives. Prices come from the bill later. */
+export interface Order {
+  id: string;
+  groupId: string;
+  title: string;
+  /** What each person ordered, by phone. */
+  lines: Record<Phone, string>;
+  parties: Phone[];
+  createdBy: Phone;
+  createdAt: number;
+  status: "open" | "done";
+}
+
 export interface PhoneSignIn {
   confirm(code: string): Promise<void>;
 }
@@ -81,11 +94,17 @@ export interface Backend {
   watchComments(cb: (c: TxnComment[]) => void): Unsub;
   addComment(txn: Txn, text: string): Promise<void>;
 
+  watchOrders(cb: (o: Order[]) => void): Unsub;
+  createOrder(group: Group, title: string): Promise<Order>;
+  setOrderLine(orderId: string, phone: Phone, text: string): Promise<void>;
+  closeOrder(orderId: string): Promise<void>;
+
   watchTxns(cb: (t: Txn[]) => void): Unsub;
   /** Writes entries (and optionally their bill) in one atomic batch. */
   addTxns(txns: NewTxn[], bill?: NewBill): Promise<Txn[]>;
 
-  readReceipt(image: Blob): Promise<RawReceipt>;
+  /** `orders`: what each person ordered (short ids), so the reader can say who had each item. */
+  readReceipt(image: Blob, orders?: { id: string; text: string }[]): Promise<RawReceipt>;
 
   pushState(): Promise<PushState>;
   enablePush(): Promise<PushState>;

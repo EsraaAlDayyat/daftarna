@@ -11,6 +11,7 @@ import { Avatar } from "./Avatar";
 import { Camera, ImageIc, Pen, WhatsApp } from "./icons";
 import { balanceAfter } from "./model";
 import { newId, shrinkImage } from "./util";
+import { matchOrders } from "../core/match";
 import { useDialect } from "./i18n";
 
 type Step = "source" | "reading" | "items" | "people" | "assign" | "summary" | "done";
@@ -20,9 +21,14 @@ type ExtrasStr = Record<keyof BillExtras, string>;
 const STEPS: Step[] = ["items", "people", "assign", "summary"];
 
 /** onDone runs after a bill is saved and the person taps OK; iPaid = I was the payer. */
-export function SplitFlow({ onClose, onDone, groupId }: { onClose: () => void; onDone?: (iPaid: boolean) => void; groupId?: string }) {
-  const { backend, me, myName, friends, toast, registered, txns, groups } = useApp();
-  const group = groups.find((g) => g.id === groupId);
+export function SplitFlow({ onClose, onDone, groupId, orderId }: {
+  onClose: () => void; onDone?: (iPaid: boolean) => void; groupId?: string; orderId?: string;
+}) {
+  const { backend, me, myName, friends, toast, registered, txns, groups, orders } = useApp();
+  const order = orders.find((o) => o.id === orderId);
+  const group = groups.find((g) => g.id === (groupId ?? order?.groupId));
+  // People who wrote something in the order
+  const orderPeople = order ? order.parties.filter((p) => order.lines[p]?.trim()) : [];
   const { t, dialect } = useDialect();
   const EXTRA_LABELS: Record<keyof BillExtras, string> = { tax: t.tax, service: t.service, delivery: t.delivery, discount: t.discount };
   const [step, setStep] = useState<Step>("source");
@@ -32,7 +38,9 @@ export function SplitFlow({ onClose, onDone, groupId }: { onClose: () => void; o
   const [printedTotal, setPrintedTotal] = useState<Fils>(0);
   const [readNote, setReadNote] = useState("");
   // In a group, everyone starts as present; untick whoever wasn't there
-  const [present, setPresent] = useState<Phone[]>(() => (group ? [me, ...group.members.filter((p) => p !== me)] : [me]));
+  const [present, setPresent] = useState<Phone[]>(() =>
+    order ? [me, ...orderPeople.filter((p) => p !== me)]
+      : group ? [me, ...group.members.filter((p) => p !== me)] : [me]);
   const [extraPeople, setExtraPeople] = useState<{ phone: Phone; name: string }[]>([]);
   const [eaters, setEaters] = useState<Record<string, Phone[]>>({});
   const [payer, setPayer] = useState<Phone>(me);
@@ -59,16 +67,31 @@ export function SplitFlow({ onClose, onDone, groupId }: { onClose: () => void; o
     if (!file) return;
     setStep("reading"); setErr("");
     try {
-      const raw = await backend.readReceipt(await shrinkImage(file));
+      // With an order, tell the reader who wanted what (short ids instead of phone numbers)
+      const ids = orderPeople.map((_, i) => `p${i + 1}`);
+      const sent = order ? orderPeople.map((p, i) => ({ id: ids[i], text: order.lines[p] })) : [];
+      const raw = await backend.readReceipt(await shrinkImage(file), sent.length ? sent : undefined);
       if (!raw.readable) throw new Error("unreadable");
-      const r = normalizeReceipt(raw, newId);
+      const r = normalizeReceipt(raw, newId, ids);
       if (!r.items.length) throw new Error("empty");
+      let matched = false;
+      if (order) {
+        const byId = Object.fromEntries(ids.map((id, i) => [id, orderPeople[i]]));
+        const guess = matchOrders(r.items, Object.fromEntries(orderPeople.map((p) => [p, order.lines[p]])));
+        const pre: Record<string, Phone[]> = {};
+        for (const it of r.items) {
+          const fromReader = (r.who[it.id] ?? []).map((id) => byId[id]).filter(Boolean);
+          pre[it.id] = fromReader.length ? fromReader : guess[it.id] ?? [];
+          if (pre[it.id].length) matched = true;
+        }
+        setEaters(pre);
+      }
       setRestaurant(r.restaurant);
       setItems(r.items.map((i) => ({ id: i.id, name: i.name, qty: i.qty, price: filsToInput(i.price) })));
       const ex = (f: Fils) => (f ? filsToInput(f) : "");
       setExtras({ tax: ex(r.extras.tax), service: ex(r.extras.service), delivery: ex(r.extras.delivery), discount: ex(r.extras.discount) });
       setPrintedTotal(r.printedTotal);
-      setReadNote(backend.mode === "demo" ? t.demoReadNote : t.readNote);
+      setReadNote(matched ? t.matchedNote : backend.mode === "demo" ? t.demoReadNote : t.readNote);
       setStep("items");
     } catch {
       startManual(t.readFailed);
@@ -153,6 +176,8 @@ export function SplitFlow({ onClose, onDone, groupId }: { onClose: () => void; o
         restaurant: restaurant.trim(), payer, items: validItems, eaters, extras: billExtras, shares: r.shares, total: r.total,
       });
       setMade(out);
+      // The bill came in, so the order is done
+      if (order) backend.closeOrder(order.id).catch(() => { /* stays open; harmless */ });
       setStep("done");
       toast(t.billSaved);
     } catch {

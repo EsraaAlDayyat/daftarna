@@ -11,6 +11,7 @@ import { AddFriendSheet } from "./AddFriendSheet";
 import { SplitFlow } from "./SplitFlow";
 import { SettingsSheet } from "./SettingsSheet";
 import { GroupSheet, JoinSheet, NewGroupSheet } from "./GroupSheets";
+import { OrderSheet } from "./OrderSheet";
 import { groupBalance, type Friend } from "./model";
 import { pendingJoin } from "./invite";
 import { dateLabel } from "./util";
@@ -20,7 +21,8 @@ import { canPickContacts, pickContacts } from "./contacts";
 type Open =
   | { kind: "friend"; phone: Phone; back?: Open }
   | { kind: "add"; groupId?: string; back?: Open }
-  | { kind: "split"; groupId?: string; back?: Open }
+  | { kind: "split"; groupId?: string; orderId?: string; back?: Open }
+  | { kind: "order"; id: string; back?: Open }
   | { kind: "settings" }
   | { kind: "group"; id: string }
   | { kind: "newGroup" }
@@ -129,7 +131,7 @@ export function Home() {
           onAdded={(p) => setOpen(open.groupId ? { kind: "group", id: open.groupId } : { kind: "friend", phone: p })} />
       )}
       {open?.kind === "split" && (
-        <SplitFlow groupId={open.groupId} onClose={back}
+        <SplitFlow groupId={open.groupId} orderId={open.orderId} onClose={back}
           // After a bill, go straight to "settle my accounts" with the right list open
           onDone={(iPaid) => { setOpen(null); setAccPart(iPaid ? "in" : "out"); setTab("accounts"); }} />
       )}
@@ -140,7 +142,12 @@ export function Home() {
         <GroupSheet id={open.id} onClose={close}
           onFriend={(p) => setOpen({ kind: "friend", phone: p, back: open })}
           onAddMember={() => setOpen({ kind: "add", groupId: open.id, back: open })}
-          onSplit={() => setOpen({ kind: "split", groupId: open.id, back: open })} />
+          onSplit={() => setOpen({ kind: "split", groupId: open.id, back: open })}
+          onOrder={(oid) => setOpen({ kind: "order", id: oid, back: open })} />
+      )}
+      {open?.kind === "order" && (
+        <OrderSheet id={open.id} onClose={back}
+          onBill={() => setOpen({ kind: "split", orderId: open.id, back: open })} />
       )}
     </>
   );

@@ -18,8 +18,9 @@ export const RECEIPT_SCHEMA = {
           qty: { type: "number" },
           unit_price: { type: "number", description: "سعر الحبة بالدينار، أو 0 إذا مش مكتوب" },
           line_total: { type: "number", description: "سعر السطر كامل بالدينار" },
+          who: { type: "array", items: { type: "string" }, description: "أرقام الأشخاص (id) اللي طلبوا هاد الصنف، من قائمة الطلبات. فاضية إذا ما في قائمة أو ما حدا طلبه" },
         },
-        required: ["name", "qty", "unit_price", "line_total"],
+        required: ["name", "qty", "unit_price", "line_total", "who"],
         additionalProperties: false,
       },
     },
@@ -38,7 +39,7 @@ export interface RawReceipt {
   readable: boolean;
   restaurant: string;
   currency: string;
-  items: { name: string; qty: number; unit_price: number; line_total: number }[];
+  items: { name: string; qty: number; unit_price: number; line_total: number; who?: string[] }[];
   subtotal: number;
   tax: number;
   service: number;
@@ -53,6 +54,8 @@ export interface ParsedReceipt {
   extras: BillExtras;
   /** Total printed on the receipt, to cross-check the computed total. */
   printedTotal: Fils;
+  /** Who ordered each item (item id → person ids), when the reader was given the orders. */
+  who: Record<string, string[]>;
 }
 
 const f = (n: unknown): Fils => {
@@ -60,16 +63,22 @@ const f = (n: unknown): Fils => {
   return v && v > 0 ? v : 0;
 };
 
-export function normalizeReceipt(r: RawReceipt, newId: () => string): ParsedReceipt {
+export function normalizeReceipt(r: RawReceipt, newId: () => string, people: string[] = []): ParsedReceipt {
+  const who: Record<string, string[]> = {};
   const items: BillItem[] = (r.items ?? [])
     .map((it) => {
       const qty = Number.isFinite(it.qty) && it.qty > 0 ? Math.round(it.qty * 100) / 100 : 1;
       let price = f(it.line_total);
       if (!price && it.unit_price) price = Math.round(f(it.unit_price) * qty);
-      return { id: newId(), name: String(it.name ?? "").trim() || "صنف", qty, price };
+      const id = newId();
+      // Keep only ids we actually sent, once each
+      const w = Array.isArray(it.who) ? [...new Set(it.who.map(String))].filter((p) => people.includes(p)) : [];
+      if (w.length) who[id] = w;
+      return { id, name: String(it.name ?? "").trim() || "صنف", qty, price };
     })
     .filter((it) => it.price > 0);
   return {
+    who,
     restaurant: String(r.restaurant ?? "").trim(),
     items,
     extras: { tax: f(r.tax), service: f(r.service), delivery: f(r.delivery), discount: f(r.discount) },
@@ -88,3 +97,14 @@ export const RECEIPT_PROMPT = `هاي صورة فاتورة مطعم، غالب�
 - إذا صنف إله كمية أكبر من 1، خليه سطر واحد بكميته.
 - أي قيمة مش موجودة حطها 0.
 - إذا الصورة مش فاتورة أو مش مقروءة، خلي readable = false.`;
+
+/** The prompt, plus who ordered what when there is a list (ids are opaque short strings). */
+export function receiptPrompt(orders: { id: string; text: string }[] = []): string {
+  const list = orders.filter((o) => o.text.trim());
+  if (!list.length) return RECEIPT_PROMPT + "\n- خلي who فاضية لكل صنف.";
+  return `${RECEIPT_PROMPT}
+- هاي قائمة الطلبات، كل شخص ورقمه (id) وشو طلب. لكل صنف بالفاتورة، حط بـ who أرقام الأشخاص اللي طلبوه.
+  الصنف المشترك (مثلاً شخصين طلبوا شاورما والفاتورة فيها شاورما ×2) بتحط فيه الاثنين. انتبه إنه الاسم ممكن يكون بالإنجليزي أو مختلف شوي (Mixed Grill = مشاوي مشكلة).
+  إذا مش متأكد، خلي who فاضية.
+${list.map((o) => `  ${o.id}: ${o.text.trim().slice(0, 200)}`).join("\n")}`;
+}

@@ -4,7 +4,7 @@ import {
   getAuth, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, signOut as fbSignOut,
 } from "firebase/auth";
 import {
-  collection, doc, getDoc, getFirestore, onSnapshot, query, runTransaction, serverTimestamp, setDoc, Timestamp,
+  collection, doc, FieldPath, getDoc, getFirestore, onSnapshot, query, runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc,
   where, writeBatch, type DocumentData,
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
@@ -12,7 +12,7 @@ import { getMessaging, getToken, isSupported } from "firebase/messaging";
 import { makeTxn, type NewTxn, type Txn } from "../core/ledger";
 import type { Phone } from "../core/phone";
 import type { RawReceipt } from "../core/receipt";
-import type { Backend, Contact, Group, NewBill, PushState, TxnComment } from "./backend";
+import type { Backend, Contact, Group, NewBill, Order, PushState, TxnComment } from "./backend";
 import { blobToBase64, isIos, isStandalone } from "../ui/util";
 
 export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string | undefined): Backend {
@@ -126,6 +126,31 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
     },
     async joinGroup(groupId) { const m = need(); await addToGroup(groupId, m.phone, myName); },
 
+    watchOrders(cb) {
+      const m = need();
+      const q = query(collection(db, "orders"), where("parties", "array-contains", m.phone));
+      return onSnapshot(q, (s) => cb(s.docs.map((d) => {
+        const x = d.data({ serverTimestamps: "estimate" });
+        return { ...(x as Order), id: d.id, lines: x.lines ?? {}, createdAt: x.createdAt instanceof Timestamp ? x.createdAt.toMillis() : Date.now() };
+      })));
+    },
+    async createOrder(group, title) {
+      const m = need();
+      const ref = doc(collection(db, "orders"));
+      const data = { groupId: group.id, title, lines: {}, parties: group.members, createdBy: m.phone, status: "open" as const };
+      await setDoc(ref, { ...data, createdAt: serverTimestamp() });
+      return { ...data, id: ref.id, createdAt: Date.now() };
+    },
+    async setOrderLine(orderId, phone, text) {
+      need();
+      // FieldPath, because phone numbers start with "+"
+      await updateDoc(doc(db, "orders", orderId), new FieldPath("lines", phone), text);
+    },
+    async closeOrder(orderId) {
+      need();
+      await updateDoc(doc(db, "orders", orderId), { status: "done" });
+    },
+
     watchComments(cb) {
       const m = need();
       const q = query(collection(db, "comments"), where("parties", "array-contains", m.phone));
@@ -174,9 +199,9 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
       return made;
     },
 
-    async readReceipt(image) {
-      const call = httpsCallable<{ image: string; mediaType: string }, RawReceipt>(fns, "readReceipt", { timeout: 90_000 });
-      const res = await call({ image: await blobToBase64(image), mediaType: image.type || "image/jpeg" });
+    async readReceipt(image, orders) {
+      const call = httpsCallable<{ image: string; mediaType: string; orders?: { id: string; text: string }[] }, RawReceipt>(fns, "readReceipt", { timeout: 90_000 });
+      const res = await call({ image: await blobToBase64(image), mediaType: image.type || "image/jpeg", orders });
       return res.data;
     },
 
