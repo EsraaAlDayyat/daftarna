@@ -366,3 +366,6 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 .acc-head[aria-expanded="false"] .acc-more::after { content: " ▾"; }
 .seg.two { grid-template-columns: 1fr 1fr; }
 .seg.two button { min-height: 60px; font-size: 17px; }
+
+/* A short saying under the dialect switch on sign-in */
+.saying { margin: -6px 0 0; color: var(--accent); font-size: 17px; font-weight: 600; }

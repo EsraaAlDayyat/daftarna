@@ -74,6 +74,7 @@ export function Login({ backend, user, invited }: { backend: Backend; user: { ph
   return (
     <div className="login">
       <DialectPicker />
+      <p className="saying">{t.saying}</p>
       <div className="login-art" aria-hidden="true"><span>🍕</span><span>☕</span><span>🧾</span></div>
       <h1>{t.appName}</h1>
       <p className="tag">{t.tagline}</p>
