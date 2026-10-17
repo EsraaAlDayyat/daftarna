@@ -158,6 +158,23 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ───── Comments on an entry ─────
+    // Both parties of the entry can read and add them. They can't be edited or deleted.
+    match /comments/{id} {
+      allow read: if signedIn() && me() in resource.data.parties;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['txnId', 'by', 'byName', 'text', 'parties', 'createdAt'])
+        && request.resource.data.txnId is string
+        && request.resource.data.by == me()
+        && request.resource.data.byName is string && request.resource.data.byName.size() <= 40
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 300
+        && request.resource.data.createdAt == request.time
+        && me() in request.resource.data.parties
+        && request.resource.data.parties == get(/databases/$(database)/documents/txns/$(request.resource.data.txnId)).data.parties;
+      allow update, delete: if false;
+    }
+
     // Receipt-reading usage counters (server only)
     match /usage/{doc} {
       allow read, write: if false;

@@ -3,7 +3,7 @@
 import { makeTxn, type NewTxn, type Txn } from "../core/ledger";
 import type { Phone } from "../core/phone";
 import type { RawReceipt } from "../core/receipt";
-import type { Backend, Bill, Contact, Group, NewBill, PushState } from "./backend";
+import type { Backend, Bill, Contact, Group, NewBill, PushState, TxnComment } from "./backend";
 
 interface Store {
   users: Record<Phone, string>;
@@ -11,6 +11,7 @@ interface Store {
   txns: Txn[];
   bills: Bill[];
   groups: Group[];
+  comments: TxnComment[];
 }
 
 const KEY = "daftarna-demo-v1";
@@ -25,9 +26,9 @@ let memory: Store | null = null;
 function load(): Store {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || "null");
-    if (s && s.users) return (memory = { groups: [], ...s });
+    if (s && s.users) return (memory = { groups: [], comments: [], ...s });
   } catch { /* storage unavailable */ }
-  return memory ?? (memory = { users: {}, contacts: {}, txns: [], bills: [], groups: [] });
+  return memory ?? (memory = { users: {}, contacts: {}, txns: [], bills: [], groups: [], comments: [] });
 }
 
 function persist(s: Store) {
@@ -117,6 +118,17 @@ export function createDemoBackend(): Backend {
       if (!me || !g) throw new Error("not-found");
       if (!g.members.includes(me)) g.members = [...g.members, me];
       g.names = { ...g.names, [me]: store.users[me] ?? "" };
+      save();
+    },
+
+    watchComments(cb) {
+      return sub(() => cb(me ? store.comments.filter((c) => c.parties.includes(me!)) : []));
+    },
+    async addComment(txn, text) {
+      if (!me || !txn.parties.includes(me)) throw new Error("permission-denied");
+      store.comments.push({
+        id: uid(), txnId: txn.id, by: me, byName: store.users[me] ?? "", text, parties: [...txn.parties], createdAt: Date.now(),
+      });
       save();
     },
 

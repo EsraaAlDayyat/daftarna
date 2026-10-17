@@ -4,7 +4,7 @@ import { normalizePhone, displayPhone, waLink } from "./phone";
 import {
   balancesFor, makeTxn, manualTxn, reversalOf, reversedIds, settlementFor, totalsFor, type Txn,
 } from "./ledger";
-import { notificationText, waStatement, waTxnMessage } from "./messages";
+import { commentText, notificationText, waStatement, waTxnMessage } from "./messages";
 import { normalizeReceipt } from "./receipt";
 
 const SARA = "+962791111111", AHMAD = "+962782222222", LINA = "+962773333333";
@@ -129,5 +129,13 @@ describe("receipt normalization", () => {
     expect(r.items.map((x) => [x.name, x.qty, x.price])).toEqual([["شاورما عربي", 2, 7000], ["Fattoush", 1, 2250]]);
     expect(r.extras).toEqual({ tax: 1628, service: 925, delivery: 0, discount: 0 });
     expect(r.printedTotal).toBe(11803);
+  });
+});
+
+describe("comment notifications", () => {
+  it("names the author and the entry, and shortens long text", () => {
+    expect(commentText("أحمد", "دفعتلك نصها", "تكسي")).toBe("💬 أحمد على «تكسي»: دفعتلك نصها");
+    expect(commentText("أحمد", "تمام", "")).toBe("💬 أحمد: تمام");
+    expect(commentText("أحمد", "x".repeat(200), "").length).toBeLessThan(140);
   });
 });

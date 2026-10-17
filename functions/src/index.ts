@@ -8,7 +8,7 @@ import { defineSecret, defineString } from "firebase-functions/params";
 import { logger } from "firebase-functions";
 import type { Txn } from "../../src/core/ledger";
 import { readReceiptWithClaude, ReceiptError } from "./receipt";
-import { pushPayload, recipientsOf } from "./notify";
+import { commentPayload, pushPayload, recipientsOf } from "./notify";
 
 initializeApp();
 setGlobalOptions({ region: "europe-west1", maxInstances: 5 });
@@ -54,6 +54,29 @@ export const readReceipt = onCall(
   },
 );
 
+/** Sends a push to every device of one user. Skips people who aren't on the app. */
+async function pushTo(phone: string, payload: Record<string, string>) {
+  const owner = await db.doc(`phones/${phone}`).get();
+  const uid = owner.data()?.uid as string | undefined;
+  if (!uid) return; // not on the app; WhatsApp covers them
+  const tokensSnap = await db.collection(`users/${uid}/tokens`).get();
+  if (tokensSnap.empty) return;
+  const tokens = tokensSnap.docs.map((x) => x.data().token as string);
+  const res = await getMessaging().sendEachForMulticast({
+    tokens,
+    data: payload,
+    webpush: { headers: { Urgency: "high", TTL: String(3 * 24 * 3600) } },
+  });
+  // Drop tokens for devices that are gone
+  await Promise.all(res.responses.map((r, i) => {
+    const code = r.error?.code ?? "";
+    if (code.includes("registration-token-not-registered") || code.includes("invalid-argument")) {
+      return tokensSnap.docs[i].ref.delete();
+    }
+    return null;
+  }));
+}
+
 /** Sends a push notification to the other party of every new transaction. */
 export const notifyOnTxn = onDocumentCreated("txns/{id}", async (event) => {
   const snap = event.data;
@@ -62,29 +85,21 @@ export const notifyOnTxn = onDocumentCreated("txns/{id}", async (event) => {
   const t = { ...d, id: snap.id, createdAt: (d.createdAt as Timestamp | undefined)?.toMillis() ?? Date.now() } as Txn;
 
   for (const phone of recipientsOf(t)) {
-    const owner = await db.doc(`phones/${phone}`).get();
-    const uid = owner.data()?.uid as string | undefined;
-    if (!uid) continue; // not on the app; WhatsApp covers them
-    const tokensSnap = await db.collection(`users/${uid}/tokens`).get();
-    if (tokensSnap.empty) continue;
-
     const all = (await db.collection("txns").where("parties", "array-contains", phone).get())
       .docs.map((x) => ({ ...x.data(), id: x.id }) as Txn);
-    const payload = pushPayload(t, phone, all);
-
-    const tokens = tokensSnap.docs.map((x) => x.data().token as string);
-    const res = await getMessaging().sendEachForMulticast({
-      tokens,
-      data: payload,
-      webpush: { headers: { Urgency: "high", TTL: String(3 * 24 * 3600) } },
-    });
-    // Drop tokens for devices that are gone
-    await Promise.all(res.responses.map((r, i) => {
-      const code = r.error?.code ?? "";
-      if (code.includes("registration-token-not-registered") || code.includes("invalid-argument")) {
-        return tokensSnap.docs[i].ref.delete();
-      }
-      return null;
-    }));
+    await pushTo(phone, pushPayload(t, phone, all));
   }
+});
+
+/** Tells the other party of an entry about a new comment on it. */
+export const notifyOnComment = onDocumentCreated("comments/{id}", async (event) => {
+  const c = event.data?.data();
+  if (!c) return;
+  const txn = (await db.doc(`txns/${c.txnId}`).get()).data();
+  const payload = commentPayload(
+    { by: c.by, byName: c.byName, text: c.text, parties: c.parties },
+    (txn?.note as string | undefined) ?? "",
+    String(c.txnId),
+  );
+  for (const phone of (c.parties as string[]).filter((p) => p !== c.by)) await pushTo(phone, payload);
 });

@@ -369,3 +369,17 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 
 /* A short saying under the dialect switch on sign-in */
 .saying { margin: -6px 0 0; color: var(--accent); font-size: 17px; font-weight: 600; }
+
+/* Comments under an entry */
+.entry-actions { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.entry .undo { grid-column: auto; }
+.talk { border: 0; background: none; padding: 4px 0; cursor: pointer; color: var(--ink-soft); font-size: 13.5px; font-weight: 600; }
+.talk.has { color: var(--accent); }
+.thread { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; background: var(--paper); border-radius: 16px; padding: 10px; }
+.bubble { align-self: flex-start; max-width: 85%; background: var(--sheet); border-radius: 14px 14px 14px 4px; padding: 6px 12px; display: flex; flex-direction: column; box-shadow: var(--shadow); }
+.bubble.mine { align-self: flex-end; background: var(--accent-soft); border-radius: 14px 14px 4px 14px; }
+.bubble .who { font-size: 12px; font-weight: 600; color: var(--accent); }
+.bubble .text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.bubble .when { font-size: 11px; color: var(--ink-soft); }
+.say { display: flex; gap: 6px; }
+.say input { min-height: 42px; padding: 8px 12px; }

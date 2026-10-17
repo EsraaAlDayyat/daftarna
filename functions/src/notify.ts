@@ -1,5 +1,5 @@
 // Who gets notified about a transaction, and what the notification says.
-import { notificationText } from "../../src/core/messages";
+import { commentText, notificationText } from "../../src/core/messages";
 import { signedFor, type Txn } from "../../src/core/ledger";
 
 /** Every party to the transaction except its author. */
@@ -18,4 +18,8 @@ export function pushPayload(t: Txn, recipient: string, all: Txn[]) {
   const other = t.creditor === recipient ? t.debtor : t.creditor;
   const body = notificationText(t, recipient, balanceBetween(all, recipient, other));
   return { title: "دفترنا", body, url: "/", tag: `txn-${t.id}` };
+}
+
+export function commentPayload(c: { by: string; byName: string; text: string; parties: string[] }, note: string, txnId: string) {
+  return { title: "دفترنا", body: commentText(c.byName, c.text, note), url: "/", tag: `comment-${txnId}` };
 }

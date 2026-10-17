@@ -131,3 +131,11 @@ export function waStatement(txns: Txn[], me: Phone, otherName: string, myName: s
     balanceForThem(bal, d),
   ].join("\n");
 }
+
+/** Notification for a new comment on an entry. */
+export function commentText(byName: string, text: string, note: string, d: Dialect = "jo"): string {
+  const who = byName || (d === "eg" ? "صاحبك" : "صاحبك");
+  const on = note ? ` على «${note}»` : "";
+  const short = text.length > 120 ? `${text.slice(0, 117)}…` : text;
+  return `💬 ${who}${on}: ${short}`;
+}

@@ -104,6 +104,13 @@ for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3
   const href = await sara.getByRole("dialog").getByRole("link", { name: "ابعت واتساب" }).getAttribute("href");
   check(href.startsWith("https://wa.me/962782222222?text="), "WhatsApp link uses the international number", `bad WhatsApp link: ${href}`);
   await shot(sara, "friend-after-entry");
+  await sara.getByRole("button", { name: "تمام" }).click();
+  await sara.getByRole("button", { name: /💬 علّق/ }).first().click();
+  await sara.getByLabel(/اكتب تعليق/).fill("رجّعهم الخميس 🙏");
+  await sara.getByRole("button", { name: "ابعت" }).click();
+  await sara.locator(".bubble.mine", { hasText: "رجّعهم الخميس" }).waitFor();
+  await shot(sara, "comment");
+  check(true, "can comment on an entry");
   await sara.getByRole("button", { name: "سكّر" }).click();
 }
 await sara.getByRole("button", { name: "سكّر" }).click();
@@ -216,6 +223,11 @@ check((await ahmad.locator(".acc .row:has-text('لينا')").count()) === 0, "Ah
 
 await ahmad.locator(".row:has-text('سارة')").click();
 await shot(ahmad, "ahmad-friend");
+await ahmad.getByRole("button", { name: /💬 تعليق/ }).first().click();
+check(await ahmad.locator(".bubble", { hasText: "رجّعهم الخميس" }).isVisible(), "the other side sees the comment");
+await ahmad.getByLabel(/اكتب تعليق/).fill("أكيد");
+await ahmad.getByRole("button", { name: "ابعت" }).click();
+await ahmad.locator(".bubble.mine", { hasText: "أكيد" }).waitFor();
 await ahmad.getByRole("button", { name: /صفّي الحساب/ }).click();
 await ahmad.getByRole("button", { name: "آه، صفّي" }).click();
 await ahmad.getByText("خالص ✓").first().waitFor();

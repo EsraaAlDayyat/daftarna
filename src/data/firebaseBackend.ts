@@ -12,7 +12,7 @@ import { getMessaging, getToken, isSupported } from "firebase/messaging";
 import { makeTxn, type NewTxn, type Txn } from "../core/ledger";
 import type { Phone } from "../core/phone";
 import type { RawReceipt } from "../core/receipt";
-import type { Backend, Contact, Group, NewBill, PushState } from "./backend";
+import type { Backend, Contact, Group, NewBill, PushState, TxnComment } from "./backend";
 import { blobToBase64, isIos, isStandalone } from "../ui/util";
 
 export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string | undefined): Backend {
@@ -125,6 +125,21 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
       } catch { return null; }
     },
     async joinGroup(groupId) { const m = need(); await addToGroup(groupId, m.phone, myName); },
+
+    watchComments(cb) {
+      const m = need();
+      const q = query(collection(db, "comments"), where("parties", "array-contains", m.phone));
+      return onSnapshot(q, (s) => cb(s.docs.map((d) => {
+        const x = d.data({ serverTimestamps: "estimate" });
+        return { ...(x as TxnComment), id: d.id, createdAt: x.createdAt instanceof Timestamp ? x.createdAt.toMillis() : Date.now() };
+      })));
+    },
+    async addComment(txn, text) {
+      const m = need();
+      await setDoc(doc(collection(db, "comments")), {
+        txnId: txn.id, by: m.phone, byName: myName, text, parties: txn.parties, createdAt: serverTimestamp(),
+      });
+    },
 
     watchTxns(cb) {
       const m = need();

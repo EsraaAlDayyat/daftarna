@@ -175,6 +175,39 @@ describe("groups", () => {
   });
 });
 
+describe("comments", () => {
+  const c = (o: Record<string, unknown> = {}) => ({
+    txnId: "t1", by: A, byName: "أحمد", text: "دفعتلك نصها كاش", parties: [S, A], createdAt: serverTimestamp(), ...o,
+  });
+  const seed = () => setDoc(doc(as("s", S), "txns/t1"), txn());
+
+  it("both parties can comment on an entry and read the comments", async () => {
+    await seed();
+    await assertSucceeds(setDoc(doc(as("a", A), "comments/c1"), c()));
+    await assertSucceeds(setDoc(doc(as("s", S), "comments/c2"), c({ by: S, byName: "سارة" })));
+    await assertSucceeds(getDocs(query(collection(as("s", S), "comments"), where("parties", "array-contains", S))));
+  });
+
+  it("an outsider can't comment or read", async () => {
+    await seed();
+    await setDoc(doc(as("a", A), "comments/c1"), c());
+    await assertFails(setDoc(doc(as("l", L), "comments/c2"), c({ by: L, byName: "لينا" })));
+    await assertFails(setDoc(doc(as("l", L), "comments/c3"), c({ by: L, byName: "لينا", parties: [S, A, L] })));
+    await assertFails(getDoc(doc(as("l", L), "comments/c1")));
+  });
+
+  it("must match the entry, be in my name, and can't be changed", async () => {
+    await seed();
+    await assertFails(setDoc(doc(as("a", A), "comments/c1"), c({ by: S })));
+    await assertFails(setDoc(doc(as("a", A), "comments/c1"), c({ txnId: "nope" })));
+    await assertFails(setDoc(doc(as("a", A), "comments/c1"), c({ text: "" })));
+    await assertFails(setDoc(doc(as("a", A), "comments/c1"), c({ text: "x".repeat(301) })));
+    await setDoc(doc(as("a", A), "comments/c1"), c());
+    await assertFails(updateDoc(doc(as("a", A), "comments/c1"), { text: "غير" }));
+    await assertFails(deleteDoc(doc(as("a", A), "comments/c1")));
+  });
+});
+
 describe("profile and phone directory", () => {
   it("can only claim my own verified number", async () => {
     await assertSucceeds(setDoc(doc(as("s", S), "phones", S), { uid: "s", name: "سارة" }));

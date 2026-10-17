@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { balancesFor, type Txn } from "./core/ledger";
-import { notificationText } from "./core/messages";
+import { commentText, notificationText } from "./core/messages";
 import type { Phone } from "./core/phone";
-import type { Backend, Contact, Group } from "./data/backend";
+import type { Backend, Contact, Group, TxnComment } from "./data/backend";
 import { createBackend } from "./data";
 import { Ctx, type AppCtx } from "./ui/AppContext";
 import { buildFriends } from "./ui/model";
@@ -19,6 +19,9 @@ export default function App() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [txns, setTxns] = useState<Txn[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [comments, setComments] = useState<TxnComment[]>([]);
+  const txnsRef = useRef<Txn[]>([]);
+  txnsRef.current = txns;
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [reg, setReg] = useState<Record<Phone, boolean>>({});
   const [dialect, setDialectState] = useState<Dialect>(getDialect);
@@ -60,6 +63,18 @@ export default function App() {
     let seen: Set<string> | null = null;
     const unsubContacts = backend.watchContacts(setContacts);
     const unsubGroups = backend.watchGroups(setGroups);
+    let seenComments: Set<string> | null = null;
+    const unsubComments = backend.watchComments((all) => {
+      if (seenComments) {
+        for (const c of all) {
+          if (seenComments.has(c.id) || c.by === me || Date.now() - c.createdAt > 120_000) continue;
+          const note = txnsRef.current.find((t) => t.id === c.txnId)?.note ?? "";
+          toast(commentText(c.byName, c.text, note, dialectRef.current), true);
+        }
+      }
+      seenComments = new Set(all.map((c) => c.id));
+      setComments(all);
+    });
     const unsubTxns = backend.watchTxns((all) => {
       if (seen) {
         // Show an in-app notification for new entries someone else created while the app is open
@@ -74,7 +89,7 @@ export default function App() {
       seen = new Set(all.map((t) => t.id));
       setTxns(all);
     });
-    return () => { unsubContacts(); unsubGroups(); unsubTxns(); setContacts([]); setGroups([]); setTxns([]); };
+    return () => { unsubContacts(); unsubGroups(); unsubComments(); unsubTxns(); setContacts([]); setGroups([]); setComments([]); setTxns([]); };
   }, [backend, me, toast]);
 
   const friends = useMemo(() => (me ? buildFriends(me, contacts, txns, groups) : []), [me, contacts, txns, groups]);
@@ -93,10 +108,10 @@ export default function App() {
   }, [backend, friends]);
 
   const ctx: AppCtx | null = useMemo(() => backend && user && user.name ? {
-    backend, me: user.phone, myName: user.name, contacts, txns, friends, groups,
+    backend, me: user.phone, myName: user.name, contacts, txns, friends, groups, comments,
     toast: (t: string) => toast(t),
     registered: (p: Phone) => (p in reg ? reg[p] : null),
-  } : null, [backend, user, contacts, txns, friends, toast, reg]);
+  } : null, [backend, user, contacts, txns, friends, groups, comments, toast, reg]);
 
   const toastsEl = (
     <>

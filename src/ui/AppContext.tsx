@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import type { Txn } from "../core/ledger";
 import type { Phone } from "../core/phone";
-import type { Backend, Contact, Group } from "../data/backend";
+import type { Backend, Contact, Group, TxnComment } from "../data/backend";
 import type { Friend } from "./model";
 
 export interface AppCtx {
@@ -12,6 +12,7 @@ export interface AppCtx {
   txns: Txn[];
   friends: Friend[];
   groups: Group[];
+  comments: TxnComment[];
   toast: (text: string) => void;
   /** Whether this number has the app (null = not known yet). */
   registered: (p: Phone) => boolean | null;

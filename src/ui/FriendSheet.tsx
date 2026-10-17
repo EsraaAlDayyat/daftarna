@@ -30,7 +30,8 @@ function chipFor(t: Txn, me: Phone, s: Strings): { text: string; cls: string } {
 type Panel = null | { kind: "sent"; txn: Txn } | { kind: "settle" } | { kind: "undo"; txn: Txn } | { kind: "rename" };
 
 export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => void }) {
-  const { friends, me, myName, backend, toast, registered } = useApp();
+  const { friends, me, myName, backend, toast, registered, comments } = useApp();
+  const [openThread, setOpenThread] = useState<string | null>(null);
   const { t: s, dialect } = useDialect();
   const ACTIONS = actions(s);
   const f = friends.find((x) => x.phone === phone);
@@ -191,12 +192,59 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
                 <div className="meta">{dateLabel(t.createdAt, s)} · {t.createdBy === me ? s.youAdded : s.theyAdded(t.createdByName)}{isVoid ? ` · ${s.cancelledTag}` : ""}</div>
               </div>
               <div className={`amt num ${v > 0 ? "pos" : "neg"}`}>{jod(t.amount)}<span className="sr-only">{v > 0 ? ` ${s.owedShort}` : ` ${s.oweShort}`}</span></div>
-              {canUndo && <button className="undo" onClick={() => setPanel({ kind: "undo", txn: t })}>{s.cancel}</button>}
+              <div className="entry-actions">
+                {(() => {
+                  const n = comments.filter((x) => x.txnId === t.id).length;
+                  const isOpen = openThread === t.id;
+                  return (
+                    <button className={`talk${n ? " has" : ""}`} aria-expanded={isOpen} onClick={() => setOpenThread(isOpen ? null : t.id)}>
+                      💬 {n ? s.commentsCount(n) : s.addComment}
+                    </button>
+                  );
+                })()}
+                {canUndo && <button className="undo" onClick={() => setPanel({ kind: "undo", txn: t })}>{s.cancel}</button>}
+              </div>
+              {openThread === t.id && <Thread txn={t} />}
             </div>
           );
         })}
       </div>
       <p className="note">{s.colorsNote}</p>
     </Sheet>
+  );
+}
+
+/** Comments under one entry: both people can write, nobody can edit or delete. */
+function Thread({ txn }: { txn: Txn }) {
+  const { comments, backend, me, toast } = useApp();
+  const { t: s } = useDialect();
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const list = comments.filter((c) => c.txnId === txn.id).sort((a, b) => a.createdAt - b.createdAt);
+
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    const v = text.trim();
+    if (!v) return;
+    setBusy(true);
+    try { await backend.addComment(txn, v.slice(0, 300)); setText(""); }
+    catch { toast(s.tryAgain); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="thread">
+      {list.map((c) => (
+        <div key={c.id} className={`bubble${c.by === me ? " mine" : ""}`}>
+          <span className="who">{c.by === me ? s.me : c.byName}</span>
+          <span className="text">{c.text}</span>
+          <span className="when">{dateLabel(c.createdAt, s)}</span>
+        </div>
+      ))}
+      <form className="say" onSubmit={send}>
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder={s.commentPh} aria-label={s.commentPh} maxLength={300} autoFocus />
+        <button className="btn small" disabled={busy || !text.trim()}>{s.send}</button>
+      </form>
+    </div>
   );
 }

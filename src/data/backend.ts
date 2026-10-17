@@ -38,6 +38,17 @@ export interface Group {
   createdAt: number;
 }
 
+/** A note under a transaction, visible to both of its parties. */
+export interface TxnComment {
+  id: string;
+  txnId: string;
+  by: Phone;
+  byName: string;
+  text: string;
+  parties: Phone[];
+  createdAt: number;
+}
+
 export interface PhoneSignIn {
   confirm(code: string): Promise<void>;
 }
@@ -65,6 +76,10 @@ export interface Backend {
   getGroup(groupId: string): Promise<Group | null>;
   /** Adds me to a group from its invite link. */
   joinGroup(groupId: string): Promise<void>;
+
+  /** Every comment on entries I'm a party to. */
+  watchComments(cb: (c: TxnComment[]) => void): Unsub;
+  addComment(txn: Txn, text: string): Promise<void>;
 
   watchTxns(cb: (t: Txn[]) => void): Unsub;
   /** Writes entries (and optionally their bill) in one atomic batch. */
