@@ -4,7 +4,8 @@ import {
 } from "../core/ledger";
 import { waReminder, waStatement, waTxnMessage } from "../core/messages";
 import { jod, parseJod } from "../core/money";
-import { displayPhone, waLink, type Phone } from "../core/phone";
+import { displayPhone, smsLink, waLink, type Phone } from "../core/phone";
+import { getNotifyVia } from "./notifyPref";
 import { useApp } from "./AppContext";
 import { Sheet } from "./Sheet";
 import { Avatar } from "./Avatar";
@@ -50,6 +51,16 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
   const reg = registered(phone);
   const cls = f.balance > 0 ? "pos" : f.balance < 0 ? "neg" : "zero";
 
+  /** Friends without the app hear about every entry, added or paid back: WhatsApp or SMS opens with the words ready. */
+  function tellThem(t: Txn) {
+    if (reg === true) return; // they get a notification in the app
+    const via = getNotifyVia();
+    if (via === "ask") return; // the panel offers both
+    const msg = waTxnMessage(t, me, f!.name, balanceAfter([...f!.txns, t], me), dialect);
+    if (via === "sms") location.href = smsLink(phone, msg);
+    else window.open(waLink(phone, msg), "_blank", "noopener");
+  }
+
   async function record(e: React.FormEvent) {
     e.preventDefault();
     const fils = parseJod(amount);
@@ -59,6 +70,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
       const [t] = await backend.addTxns([manualTxn(action, me, phone, fils, note.trim(), myName)]);
       setAmount(""); setNote("");
       setPanel({ kind: "sent", txn: t });
+      tellThem(t);
       toast(s.recorded);
     } catch { setErr(s.saveFailed); }
     finally { setBusy(false); }
@@ -71,6 +83,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
     try {
       const [t] = await backend.addTxns([st]);
       setPanel({ kind: "sent", txn: t });
+      tellThem(t);
       toast(s.nowSettled);
     } catch { toast(s.saveFailed); }
     finally { setBusy(false); }
@@ -81,6 +94,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
     try {
       const [r] = await backend.addTxns([reversalOf(t, me, myName)]);
       setPanel({ kind: "sent", txn: r });
+      tellThem(r);
       toast(s.cancelled);
     } catch { toast(s.tryAgain); }
     finally { setBusy(false); }
@@ -163,6 +177,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
           </div>
           <div className="actions">
             <a className={`btn ${reg ? "ghost" : "wa"}`} href={waLink(phone, sentMsg)} target="_blank" rel="noopener" onClick={() => setPanel(null)}><WhatsApp />{s.sendWa}</a>
+            {!reg && <a className="btn ghost" href={smsLink(phone, sentMsg)} onClick={() => setPanel(null)}>💬 {s.sendSms}</a>}
             <button className="btn ghost" onClick={() => setPanel(null)}>{s.ok}</button>
           </div>
         </div>

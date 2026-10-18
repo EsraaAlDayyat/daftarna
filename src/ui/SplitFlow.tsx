@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import type { NewTxn, Txn } from "../core/ledger";
 import { waTxnMessage } from "../core/messages";
 import { filsToInput, jod, parseJod, type Fils } from "../core/money";
-import { normalizePhone, waLink, type Phone } from "../core/phone";
+import { normalizePhone, smsLink, waLink, type Phone } from "../core/phone";
+import { getNotifyVia } from "./notifyPref";
 import { normalizeReceipt } from "../core/receipt";
 import { billTotal, splitBill, validateSplit, type BillExtras, type BillItem } from "../core/split";
 import { useApp } from "./AppContext";
@@ -378,7 +379,10 @@ export function SplitFlow({ onClose, onDone, groupId, orderId }: {
                   <div key={tx.id} className="share-row">
                     <span className="who"><b>{nameOf(tx.debtor)}</b><span>{reg ? t.hasApp : t.noApp}</span></span>
                     <span className="amt num">{jod(tx.amount)}</span>
-                    <a className={`btn small ${reg ? "ghost" : "wa"}`} href={waLink(tx.debtor, msg)} target="_blank" rel="noopener" aria-label={t.waTo(nameOf(tx.debtor))}><WhatsApp />{t.whatsapp}</a>
+                    <span className="send-pair">
+                      <a className={`btn small ${reg || getNotifyVia() === "sms" ? "ghost" : "wa"}`} href={waLink(tx.debtor, msg)} target="_blank" rel="noopener" aria-label={t.waTo(nameOf(tx.debtor))}><WhatsApp />{t.whatsapp}</a>
+                      {!reg && <a className={`btn small ${getNotifyVia() === "sms" ? "" : "ghost"}`} href={smsLink(tx.debtor, msg)} aria-label={t.smsTo(nameOf(tx.debtor))}>💬 {t.viaSms}</a>}
+                    </span>
                   </div>
                 );
               })}

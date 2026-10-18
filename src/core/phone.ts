@@ -45,3 +45,8 @@ export function displayPhone(p: Phone): string {
 export function waLink(p: Phone, message: string): string {
   return `https://wa.me/${p.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
 }
+
+/** Opens a normal text message with the words filled in (Android and iPhone both read "?&body="). */
+export function smsLink(p: Phone, message: string): string {
+  return `sms:${p}?&body=${encodeURIComponent(message)}`;
+}

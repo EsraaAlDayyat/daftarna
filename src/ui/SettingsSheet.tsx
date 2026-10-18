@@ -8,6 +8,7 @@ import { getTheme, setTheme, type Theme } from "./theme";
 import { useT } from "./i18n";
 import { DialectPicker, InstallTip } from "./Login";
 import { normalizeCliq } from "../core/cliq";
+import { getNotifyVia, setNotifyVia, type NotifyVia } from "./notifyPref";
 import { Bell, Bolt, Exit, Globe, Moon, Palette, Pencil, Phone as PhoneIcon, Shield, Sun } from "./icons";
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
@@ -19,6 +20,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState(myName);
   const [busy, setBusy] = useState(false);
   const [cliq, setCliq] = useState(myCliq);
+  const [via, setVia] = useState<NotifyVia>(getNotifyVia());
   useEffect(() => setCliq(myCliq), [myCliq]);
   async function saveCliq(e: React.FormEvent) {
     e.preventDefault();
@@ -104,6 +106,16 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           <div className="seg theme-seg" role="group" aria-label={t.look}>
             {themes.map(([k, l, ic]) => (
               <button key={k} aria-pressed={theme === k} onClick={() => { setTheme(k); setT(k); }}>{ic}{l}</button>
+            ))}
+          </div>
+        </section>
+
+        <section className="set-card">
+          <div className="set-head"><span className="ic">📨</span><b>{t.tellTitle}</b></div>
+          <span className="muted">{t.tellHint}</span>
+          <div className="seg" role="group" aria-label={t.tellTitle}>
+            {([["sms", t.viaSms], ["wa", t.viaWa], ["ask", t.viaAsk]] as [NotifyVia, string][]).map(([k, l]) => (
+              <button key={k} aria-pressed={via === k} onClick={() => { setNotifyVia(k); setVia(k); }}>{l}</button>
             ))}
           </div>
         </section>

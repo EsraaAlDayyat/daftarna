@@ -615,3 +615,4 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 .cliq-card .who .muted { white-space: normal; }
 .cliq-card input { flex: 1; min-width: 0; min-height: 44px; }
 .cliq-add { border: 2px dashed color-mix(in srgb, var(--accent) 35%, transparent); background: transparent; border-radius: 20px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--ink-soft); font-weight: 600; text-align: start; }
+.send-pair { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }

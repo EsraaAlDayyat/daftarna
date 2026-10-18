@@ -19,6 +19,8 @@ const browser = await chromium.launch({
 const ctx = await browser.newContext({
   viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: "ar-JO",
 });
+// Keep the walkthrough on the page: offer WhatsApp/SMS in the panel instead of opening them
+await ctx.addInitScript(() => { try { if (!localStorage.getItem("daftarna-notify-via")) localStorage.setItem("daftarna-notify-via", "ask"); } catch { /* */ } });
 
 const errors = [];
 let step = 0;
