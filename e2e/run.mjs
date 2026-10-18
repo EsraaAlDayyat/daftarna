@@ -263,7 +263,7 @@ await ahmad.getByRole("button", { name: "ابعت" }).click();
 await ahmad.locator(".bubble.mine", { hasText: "أكيد" }).waitFor();
 await ahmad.getByRole("button", { name: /صفّي الحساب/ }).click();
 await ahmad.getByRole("button", { name: "آه، صفّي" }).click();
-await ahmad.getByText("خالص ✓").first().waitFor();
+await ahmad.getByText(/ما في إشي بيناتنا هلأ/).first().waitFor();
 await shot(ahmad, "ahmad-settled");
 
 await sara.bringToFront();

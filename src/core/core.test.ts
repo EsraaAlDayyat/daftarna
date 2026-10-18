@@ -103,14 +103,16 @@ describe("message text", () => {
   it("payment notification that settles the balance", () => {
     // Ahmad records that Sara paid him
     const t = mk(manualTxn("hePaidMe", AHMAD, SARA, 10000, "", "أحمد"));
-    expect(notificationText(t, SARA, 0)).toBe("سجّل أحمد إنك دفعتله 10 د.أ. الرصيد صار خالص ✓");
+    expect(notificationText(t, SARA, 0)).toBe("سجّل أحمد إنك دفعتله 10 د.أ. ما في إشي بيناتكم هلأ ✓");
   });
   it("WhatsApp message and statement", () => {
     const t = mk(manualTxn("iLentHim", SARA, AHMAD, 2500, "تكسي", "سارة"));
-    expect(waTxnMessage(t, SARA, "أحمد", 2500)).toBe("مرحبا أحمد، سجّلت إني أعطيتك 2.500 د.أ (تكسي).\nصار عليك إلي 2.500 د.أ");
+    expect(waTxnMessage(t, SARA, "أحمد", 2500)).toBe(
+      "مرحبا أحمد 👋\nدفعتلك 2.500 د.أ عن: تكسي\n👈 صار المجموع اللي عليك: 2.500 د.أ\n\n📒 دفترنا: https://daftarna-99fad.web.app");
     const st = waStatement([t], SARA, "أحمد", "سارة");
     expect(st).toContain("+2.500 تكسي");
-    expect(st.endsWith("صار عليك إلي 2.500 د.أ")).toBe(true);
+    expect(st).toContain("👈 صار المجموع اللي عليك: 2.500 د.أ");
+    expect(st.endsWith("https://daftarna-99fad.web.app")).toBe(true);
   });
 });
 

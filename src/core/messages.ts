@@ -10,7 +10,7 @@ export type Dialect = "jo" | "eg";
 
 /** Balance line from the viewer's perspective. */
 function balanceLine(balance: Fils, d: Dialect): string {
-  if (balance === 0) return d === "eg" ? "بقيتوا خالصين ✓" : "الرصيد صار خالص ✓";
+  if (balance === 0) return d === "eg" ? "مفيش حاجة بينكم دلوقتي ✓" : "ما في إشي بيناتكم هلأ ✓";
   if (d === "eg") return balance > 0 ? `ليك عنده ${j(balance)}` : `عليك له ${j(-balance)}`;
   return balance > 0 ? `إلك عنده ${j(balance)}` : `عليك إله ${j(-balance)}`;
 }
@@ -72,45 +72,50 @@ export function notificationText(t: Txn, viewer: Phone, balanceAfter: Fils, plac
 }
 
 /** WhatsApp message from the author to the other party (for people without the app). */
+/** The app's address, added under every message so the friend can open their account. */
+export const APP_URL = "https://daftarna-99fad.web.app";
+const footer = (d: Dialect) => `\n\n📒 ${d === "eg" ? "دفترنا" : "دفترنا"}: ${APP_URL}`;
+
+/** Message to a friend about one entry (WhatsApp or SMS). Short lines, the total last, then the app link. */
 export function waTxnMessage(t: Txn, me: Phone, otherName: string, balanceAfterForMe: Fils, d: Dialect = "jo"): string {
   const a = j(t.amount);
-  const note = t.note ? ` (${t.note})` : "";
-  const mine = signedFor(t, me) > 0;
+  const what = t.note ? t.note.replace(/^إلغاء: /, "") : "";
+  const mine = signedFor(t, me) > 0; // the entry is in my favour: they owe me for it
+  const eg = d === "eg";
   let line: string;
-  if (d === "eg") {
-    switch (t.kind) {
-      case "split": line = `نصيبك من الفاتورة${note}: ${a}`; break;
-      case "settle": line = `قفلنا الحساب (${a})`; break;
-      case "reversal": line = `لغيت حاجة بـ ${a}${t.note ? ` (${t.note.replace(/^إلغاء: /, "")})` : ""}`; break;
-      case "lend": line = `سجّلت إني سلّفتك ${a}${note}`; break;
-      default: line = mine ? `سجّلت إني دفعتلك ${a}${note}` : `سجّلت إنك دفعتلي ${a}${note}`;
-    }
-    return `أهلاً يا ${otherName}، ${line}.\n${balanceForThem(balanceAfterForMe, d)}`;
-  }
   switch (t.kind) {
-    case "split": line = `حصتك من الفاتورة${note}: ${a}`; break;
-    case "settle": line = `صفّينا الحساب (${a})`; break;
-    case "reversal": line = `لغيت حركة بقيمة ${a}${t.note ? ` (${t.note.replace(/^إلغاء: /, "")})` : ""}`; break;
-    case "lend": line = `سجّلت إني أعطيتك ${a}${note}`; break;
-    default: line = mine ? `سجّلت إني دفعتلك ${a}${note}` : `سجّلت إنك دفعتلي ${a}${note}`;
+    case "split":
+      line = eg ? `نصيبك من الفاتورة${what ? ` (${what})` : ""}: ${a}` : `حصتك من الفاتورة${what ? ` (${what})` : ""}: ${a}`;
+      break;
+    case "settle":
+      line = eg ? `قفلنا الحساب (${a}) ✅` : `صفّينا الحساب (${a}) ✅`;
+      break;
+    case "reversal":
+      line = eg ? `لغيت حاجة اتسجّلت غلط${what ? `: ${what}` : ""} (${a})` : `لغيت تسجيلة كانت غلط${what ? `: ${what}` : ""} (${a})`;
+      break;
+    default:
+      line = mine
+        ? (eg ? `دفعتلك ${a}${what ? ` عن: ${what}` : ""}` : `دفعتلك ${a}${what ? ` عن: ${what}` : ""}`)
+        : (eg ? `دفعتلي ${a}${what ? ` عن: ${what}` : ""}، تسلم إيدك 🙏` : `دفعتلي ${a}${what ? ` عن: ${what}` : ""}، تسلم إيدك 🙏`);
   }
-  return `مرحبا ${otherName}، ${line}.\n${balanceForThem(balanceAfterForMe, d)}`;
+  const hi = eg ? `أهلاً يا ${otherName} 👋` : `مرحبا ${otherName} 👋`;
+  return `${hi}\n${line}\n${balanceForThem(balanceAfterForMe, d)}${footer(d)}`;
 }
 
 /** The balance phrased from the friend's side (the opposite of mine). */
 function balanceForThem(balanceForMe: Fils, d: Dialect = "jo"): string {
   if (d === "eg") {
-    if (balanceForMe === 0) return "إحنا خالصين ✓";
-    return balanceForMe > 0 ? `كده عليك ليا ${j(balanceForMe)}` : `كده ليك عندي ${j(-balanceForMe)}`;
+    if (balanceForMe === 0) return "✅ مفيش حاجة بينّا دلوقتي";
+    return balanceForMe > 0 ? `👈 المجموع اللي عليك: ${j(balanceForMe)}` : `👈 ليك عندي: ${j(-balanceForMe)}`;
   }
-  if (balanceForMe === 0) return "الحساب بيناتنا خالص ✓";
-  return balanceForMe > 0 ? `صار عليك إلي ${j(balanceForMe)}` : `صار إلك عندي ${j(-balanceForMe)}`;
+  if (balanceForMe === 0) return "✅ ما في إشي بيناتنا هلأ";
+  return balanceForMe > 0 ? `👈 صار المجموع اللي عليك: ${j(balanceForMe)}` : `👈 صار إلك عندي: ${j(-balanceForMe)}`;
 }
 
 export function waReminder(otherName: string, balanceForMe: Fils, d: Dialect = "jo", myCliq = ""): string {
-  const pay = myCliq ? (d === "eg" ? `\nتقدر تحوّل على CliQ: ${myCliq}` : `\nبتقدر تحوّل على CliQ: ${myCliq}`) : "";
-  if (d === "eg") return `أهلاً يا ${otherName} 🌷 حبيت أفكّرك إن عليك ليا ${j(balanceForMe)}. شكراً ليك.${pay}`;
-  return `مرحبا ${otherName} 🌷 حبيت أذكّرك إنه الرصيد اللي عليك إلي ${j(balanceForMe)}. شكراً إلك.${pay}`;
+  const pay = myCliq ? (d === "eg" ? `\n💳 تقدر تحوّل على CliQ: ${myCliq}` : `\n💳 بتقدر تحوّل على CliQ: ${myCliq}`) : "";
+  if (d === "eg") return `أهلاً يا ${otherName} 🌷\nحبيت أفكّرك إن عليك ليا ${j(balanceForMe)}.\nشكراً ليك 🙏${pay}${footer(d)}`;
+  return `مرحبا ${otherName} 🌷\nحبيت أذكّرك إنه عليك إلي ${j(balanceForMe)}.\nشكراً إلك 🙏${pay}${footer(d)}`;
 }
 
 const dfmt = new Intl.DateTimeFormat("ar-JO", { day: "numeric", month: "short", year: "numeric", numberingSystem: "latn" });
@@ -130,7 +135,7 @@ export function waStatement(txns: Txn[], me: Phone, otherName: string, myName: s
     ...(rows.length ? rows : [eg ? "مفيش حاجة" : "ما في إشي"]),
     "──────",
     balanceForThem(bal, d),
-  ].join("\n");
+  ].join("\n") + footer(d);
 }
 
 /** Notification for a new comment on an entry. */
