@@ -60,7 +60,7 @@ await sara.goto(URL);
 await sara.getByRole("button", { name: "ابعتلي كود" }).waitFor();
 await shot(sara, "login");
 await sara.getByRole("radio", { name: /مصري/ }).click();
-check(await sara.getByText("مين ليك ومين عليك").isVisible() && await sara.getByLabel("رقم موبايلك").isVisible(), "switches the words to Egyptian");
+check(await sara.getByText(/ريّح دماغك من الحساب/).isVisible() && await sara.getByLabel("رقم موبايلك").isVisible(), "switches the words to Egyptian");
 await shot(sara, "login-egyptian");
 await sara.getByRole("radio", { name: /أردني/ }).click();
 check(await sara.getByLabel("رقم تلفونك").isVisible(), "and back to Jordanian");
