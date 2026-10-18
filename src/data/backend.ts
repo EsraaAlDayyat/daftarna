@@ -9,6 +9,8 @@ export type Unsub = () => void;
 export interface Contact {
   phone: Phone;
   name: string;
+  /** Their CliQ alias, so I can send them money. */
+  cliq?: string;
 }
 
 export interface Bill {
@@ -71,9 +73,11 @@ export type PushState = "granted" | "denied" | "default" | "unsupported" | "need
 export interface Backend {
   mode: "demo" | "firebase";
   /** null = signed out; name === null = signed in but hasn't set a name yet. */
-  onAuth(cb: (u: { phone: Phone; name: string | null } | null) => void): Unsub;
+  onAuth(cb: (u: { phone: Phone; name: string | null; cliq?: string } | null) => void): Unsub;
   startPhoneSignIn(phone: Phone, recaptchaEl: HTMLElement): Promise<PhoneSignIn>;
   saveName(name: string): Promise<void>;
+  /** My own CliQ alias ("" removes it); added to reminders so friends can pay me. */
+  saveMyCliq(alias: string): Promise<void>;
   signOut(): Promise<void>;
 
   watchContacts(cb: (c: Contact[]) => void): Unsub;

@@ -124,6 +124,7 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
 /** Everyone who owes me, each with a ready WhatsApp reminder. */
 function RemindSheet({ friends, onClose }: { friends: Friend[]; onClose: () => void }) {
   const { t, dialect } = useDialect();
+  const { myCliq } = useApp();
   return (
     <Sheet title={t.remindTitle} onClose={onClose}>
       <p className="muted" style={{ margin: "-8px 0 0" }}>{t.remindHint}</p>
@@ -132,7 +133,7 @@ function RemindSheet({ friends, onClose }: { friends: Friend[]; onClose: () => v
           <div key={f.phone} className="row static">
             <Avatar name={f.name} id={f.phone} />
             <span className="who"><b>{f.name}</b><span className="num">{jod(f.balance)}</span></span>
-            <a className="btn small wa" href={waLink(f.phone, waReminder(f.name, f.balance, dialect))} target="_blank" rel="noopener">{t.whatsapp}</a>
+            <a className="btn small wa" href={waLink(f.phone, waReminder(f.name, f.balance, dialect, myCliq))} target="_blank" rel="noopener">{t.whatsapp}</a>
           </div>
         ))}
       </div>

@@ -8,7 +8,8 @@ import { displayPhone, waLink, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Sheet } from "./Sheet";
 import { Avatar } from "./Avatar";
-import { WhatsApp } from "./icons";
+import { Pencil, WhatsApp } from "./icons";
+import { normalizeCliq } from "../core/cliq";
 import { balanceAfter } from "./model";
 import { dateLabel } from "./util";
 import { useDialect, type Strings } from "./i18n";
@@ -27,10 +28,10 @@ function chipFor(t: Txn, me: Phone, s: Strings): { text: string; cls: string } {
   return mine ? { text: s.theyOweMeTab, cls: "p" } : { text: s.iOweThemTab, cls: "o" };
 }
 
-type Panel = null | { kind: "sent"; txn: Txn } | { kind: "settle" } | { kind: "undo"; txn: Txn } | { kind: "rename" };
+type Panel = null | { kind: "sent"; txn: Txn } | { kind: "settle" } | { kind: "undo"; txn: Txn } | { kind: "rename" } | { kind: "cliq" };
 
 export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => void }) {
-  const { friends, me, myName, backend, toast, registered, comments } = useApp();
+  const { friends, me, myName, myCliq, backend, toast, registered, comments, contacts } = useApp();
   const [openThread, setOpenThread] = useState<string | null>(null);
   const { t: s, dialect } = useDialect();
   const ACTIONS = actions(s);
@@ -42,6 +43,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
   const [busy, setBusy] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
   const [newName, setNewName] = useState("");
+  const [cliqIn, setCliqIn] = useState("");
   const voided = useMemo(() => reversedIds(f?.txns ?? []), [f?.txns]);
 
   if (!f) return null;
@@ -92,6 +94,18 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
     toast(s.saved);
   }
 
+  const cliq = contacts.find((c) => c.phone === phone)?.cliq ?? "";
+  async function saveCliq(e: React.FormEvent) {
+    e.preventDefault();
+    const v = cliqIn.trim() ? normalizeCliq(cliqIn) : "";
+    if (v === null) { toast(s.badCliq); return; }
+    try { await backend.saveContact({ phone, name: f!.name, cliq: v }); setPanel(null); toast(s.saved); }
+    catch { toast(s.tryAgain); }
+  }
+  async function copyCliq() {
+    try { await navigator.clipboard.writeText(cliq); toast(s.cliqCopied); } catch { /* */ }
+  }
+
   const sentMsg = panel?.kind === "sent"
     ? waTxnMessage(panel.txn, me, f.name, balanceAfter(f.txns.some((x) => x.id === panel.txn.id) ? f.txns : [...f.txns, panel.txn], me), dialect)
     : "";
@@ -118,6 +132,28 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         <div className="lbl">{cls === "pos" ? s.owesMe : cls === "neg" ? s.iOweThem : s.balance}</div>
         <div className={`amt num ${cls}`}>{jod(Math.abs(f.balance))}</div>
       </div>
+
+      {panel?.kind === "cliq" ? (
+        <form className="cliq-card" onSubmit={saveCliq}>
+          <span className="cliq-logo" aria-hidden="true">CliQ</span>
+          <input autoFocus dir="ltr" value={cliqIn} onChange={(e) => setCliqIn(e.target.value)} placeholder={s.cliqPh} aria-label={s.cliqOf(f.name)} maxLength={20} />
+          <button className="btn small">{s.save}</button>
+        </form>
+      ) : cliq ? (
+        <div className={`cliq-card ${f.balance < 0 ? "due" : ""}`}>
+          <span className="cliq-logo" aria-hidden="true">CliQ</span>
+          <span className="who">
+            <b dir="ltr">{cliq}</b>
+            <span className="muted">{f.balance < 0 ? s.cliqPayHint(jod(-f.balance)) : s.cliqOf(f.name)}</span>
+          </span>
+          <button className="btn small" onClick={copyCliq}>{s.copy}</button>
+          <button className="icon-btn" onClick={() => { setCliqIn(cliq); setPanel({ kind: "cliq" }); }} aria-label={s.editCliq}><Pencil /></button>
+        </div>
+      ) : (
+        <button className="cliq-add" onClick={() => { setCliqIn(""); setPanel({ kind: "cliq" }); }}>
+          <span className="cliq-logo" aria-hidden="true">CliQ</span>{s.addCliq(f.name)}
+        </button>
+      )}
 
       {panel?.kind === "sent" && (
         <div className="notice">
@@ -172,7 +208,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
       <div className="actions">
         {f.balance !== 0 && <button className="btn soft" onClick={() => setPanel({ kind: "settle" })}>{s.settleUp}</button>}
         {f.balance > 0 && (
-          <a className="btn soft" href={waLink(phone, waReminder(f.name, f.balance, dialect))} target="_blank" rel="noopener"><WhatsApp />{s.remind}</a>
+          <a className="btn soft" href={waLink(phone, waReminder(f.name, f.balance, dialect, myCliq))} target="_blank" rel="noopener"><WhatsApp />{s.remind}</a>
         )}
         {f.txns.length > 0 && (
           <a className="btn soft" href={waLink(phone, statement)} target="_blank" rel="noopener"><WhatsApp />{s.sendAll}</a>

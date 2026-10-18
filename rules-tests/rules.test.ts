@@ -252,4 +252,11 @@ describe("profile and phone directory", () => {
     await assertFails(getDoc(doc(as("a", A), `users/s/contacts/${A}`)));
     await assertFails(setDoc(doc(as("a", A), `users/s/contacts/${L}`), { phone: L, name: "x" }));
   });
+  it("a contact and my profile can carry a short CliQ alias", async () => {
+    await assertSucceeds(setDoc(doc(as("s", S), `users/s/contacts/${A}`), { phone: A, name: "أحمد", cliq: "AHMAD22" }));
+    await assertFails(setDoc(doc(as("s", S), `users/s/contacts/${A}`), { phone: A, name: "أحمد", cliq: "X".repeat(21) }));
+    await assertFails(setDoc(doc(as("s", S), `users/s/contacts/${A}`), { phone: A, name: "أحمد", cliq: 5 }));
+    await assertSucceeds(setDoc(doc(as("s", S), "users/s"), { phone: S, name: "سارة", cliq: "SARA" }));
+    await assertFails(setDoc(doc(as("s", S), "users/s"), { phone: S, name: "سارة", iban: "JO00" }));
+  });
 });

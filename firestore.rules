@@ -11,24 +11,30 @@ service cloud.firestore {
     }
     function me() { return request.auth.token.phone_number; }
     function isPhone(p) { return p is string && p.matches('^[+][1-9][0-9]{7,14}$'); }
+    // CliQ alias: optional, short string ("" means none)
+    function validCliq(d) {
+      return !('cliq' in d) || (d.cliq is string && d.cliq.size() <= 20);
+    }
     function validName(n) { return n is string && n.size() > 0 && n.size() <= 40; }
 
     // ───── Profile ─────
     match /users/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow create, update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['phone', 'name'])
+        && request.resource.data.keys().hasOnly(['phone', 'name', 'cliq'])
         && request.resource.data.phone == me()
-        && validName(request.resource.data.name);
+        && validName(request.resource.data.name)
+        && validCliq(request.resource.data);
 
       // My contacts (names I chose). Private to me.
       match /contacts/{phone} {
         allow read, delete: if signedIn() && request.auth.uid == uid;
         allow create, update: if signedIn() && request.auth.uid == uid
           && isPhone(phone)
-          && request.resource.data.keys().hasOnly(['phone', 'name'])
+          && request.resource.data.keys().hasOnly(['phone', 'name', 'cliq'])
           && request.resource.data.phone == phone
-          && validName(request.resource.data.name);
+          && validName(request.resource.data.name)
+          && validCliq(request.resource.data);
       }
 
       // Push notification tokens

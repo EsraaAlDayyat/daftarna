@@ -66,11 +66,13 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
         let cached = "";
         try { cached = localStorage.getItem(nameKey) ?? ""; } catch { /* */ }
         if (cached) { myName = cached; cb({ phone: u.phoneNumber, name: cached }); }
+        let cliq = "";
         unsubProfile = onSnapshot(doc(db, "users", u.uid), (s) => {
           myName = (s.data()?.name as string) || "";
+          const c = (s.data()?.cliq as string) || "";
           try { if (myName) localStorage.setItem(nameKey, myName); } catch { /* */ }
-          if (myName !== cached || !cached) cb({ phone: u.phoneNumber!, name: myName || null });
-          cached = myName;
+          if (myName !== cached || !cached || c !== cliq) cb({ phone: u.phoneNumber!, name: myName || null, cliq: c });
+          cached = myName; cliq = c;
         }, () => { if (!cached) cb({ phone: u.phoneNumber!, name: null }); });
       });
       return () => { un(); unsubProfile?.(); };
@@ -87,6 +89,10 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
       batch.set(doc(db, "phones", m.phone), { uid: m.uid, name });
       await batch.commit();
     },
+    async saveMyCliq(alias) {
+      const m = need();
+      await setDoc(doc(db, "users", m.uid), { cliq: alias }, { merge: true });
+    },
     async signOut() { await fbSignOut(auth); },
 
     watchContacts(cb) {
@@ -97,7 +103,9 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
     },
     async saveContact(c) {
       const m = need();
-      await setDoc(doc(db, "users", m.uid, "contacts", c.phone), { phone: c.phone, name: c.name });
+      // Merge, so renaming someone keeps their CliQ
+      await setDoc(doc(db, "users", m.uid, "contacts", c.phone),
+        { phone: c.phone, name: c.name, ...(c.cliq !== undefined ? { cliq: c.cliq } : {}) }, { merge: true });
     },
     async lookupUser(phone) {
       const s = await getDoc(doc(db, "phones", phone));

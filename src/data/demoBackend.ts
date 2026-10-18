@@ -7,6 +7,7 @@ import type { Backend, Bill, Contact, Group, NewBill, Order, PushState, TxnComme
 
 interface Store {
   users: Record<Phone, string>;
+  cliq?: Record<Phone, string>;
   contacts: Record<Phone, Contact[]>;
   txns: Txn[];
   bills: Bill[];
@@ -60,7 +61,7 @@ export function createDemoBackend(): Backend {
   return {
     mode: "demo",
     onAuth(cb) {
-      return sub(() => cb(me ? { phone: me, name: store.users[me] ?? null } : null));
+      return sub(() => cb(me ? { phone: me, name: store.users[me] ?? null, cliq: store.cliq?.[me] ?? "" } : null));
     },
     async startPhoneSignIn(phone) {
       await new Promise((r) => setTimeout(r, 300));
@@ -76,6 +77,11 @@ export function createDemoBackend(): Backend {
       store.users[me] = name;
       save();
     },
+    async saveMyCliq(alias) {
+      if (!me) throw new Error("not-signed-in");
+      (store.cliq ??= {})[me] = alias;
+      save();
+    },
     async signOut() { setMe(null); },
 
     watchContacts(cb) {
@@ -85,7 +91,7 @@ export function createDemoBackend(): Backend {
       if (!me) throw new Error("not-signed-in");
       const list = store.contacts[me] ?? (store.contacts[me] = []);
       const i = list.findIndex((x) => x.phone === c.phone);
-      if (i >= 0) list[i] = c; else list.push(c);
+      if (i >= 0) list[i] = { ...list[i], ...c }; else list.push(c);
       save();
     },
     async lookupUser(phone) {

@@ -15,7 +15,7 @@ type Toast = { id: number; text: string; push?: boolean };
 
 export default function App() {
   const [backend, setBackend] = useState<Backend | null>(null);
-  const [user, setUser] = useState<{ phone: Phone; name: string | null } | null | undefined>(undefined);
+  const [user, setUser] = useState<{ phone: Phone; name: string | null; cliq?: string } | null | undefined>(undefined);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [txns, setTxns] = useState<Txn[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -110,7 +110,7 @@ export default function App() {
   }, [backend, friends]);
 
   const ctx: AppCtx | null = useMemo(() => backend && user && user.name ? {
-    backend, me: user.phone, myName: user.name, contacts, txns, friends, groups, comments, orders,
+    backend, me: user.phone, myName: user.name, myCliq: user.cliq ?? "", contacts, txns, friends, groups, comments, orders,
     toast: (t: string) => toast(t),
     registered: (p: Phone) => (p in reg ? reg[p] : null),
   } : null, [backend, user, contacts, txns, friends, groups, comments, orders, toast, reg]);

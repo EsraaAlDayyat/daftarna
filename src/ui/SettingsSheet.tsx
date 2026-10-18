@@ -7,16 +7,25 @@ import { Sheet } from "./Sheet";
 import { getTheme, setTheme, type Theme } from "./theme";
 import { useT } from "./i18n";
 import { DialectPicker, InstallTip } from "./Login";
+import { normalizeCliq } from "../core/cliq";
 import { Bell, Bolt, Exit, Globe, Moon, Palette, Pencil, Phone as PhoneIcon, Shield, Sun } from "./icons";
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
-  const { backend, me, myName, toast } = useApp();
+  const { backend, me, myName, myCliq, toast } = useApp();
   const t = useT();
   const [push, setPush] = useState<PushState | null>(null);
   const [theme, setT] = useState<Theme>(getTheme());
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(myName);
   const [busy, setBusy] = useState(false);
+  const [cliq, setCliq] = useState(myCliq);
+  useEffect(() => setCliq(myCliq), [myCliq]);
+  async function saveCliq(e: React.FormEvent) {
+    e.preventDefault();
+    const v = cliq.trim() ? normalizeCliq(cliq) : "";
+    if (v === null) { toast(t.badCliq); return; }
+    try { await backend.saveMyCliq(v); setCliq(v); toast(t.saved); } catch { toast(t.tryAgain); }
+  }
   useEffect(() => { backend.pushState().then(setPush).catch(() => setPush("unsupported")); }, [backend]);
   const demo = backend.mode === "demo";
 
@@ -74,6 +83,15 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           {!editing && (
             <button className="icon-btn" onClick={() => { setName(myName); setEditing(true); }} aria-label={t.editName}><Pencil /></button>
           )}
+        </section>
+
+        <section className="set-card">
+          <div className="set-head"><span className="cliq-logo" aria-hidden="true">CliQ</span><b>{t.myCliq}</b></div>
+          <span className="muted">{t.myCliqHint}</span>
+          <form className="name-edit" onSubmit={saveCliq}>
+            <input dir="ltr" value={cliq} onChange={(e) => setCliq(e.target.value)} placeholder={t.cliqPh} aria-label={t.myCliq} maxLength={20} />
+            <button className="btn small" disabled={cliq.trim() === myCliq}>{t.save}</button>
+          </form>
         </section>
 
         <section className="set-card">

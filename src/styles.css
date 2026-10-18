@@ -605,3 +605,13 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 .login .demo-card .btn { white-space: nowrap; }
 .demo-card .who b { white-space: normal; overflow: visible; }
 .btn.new-debt { display: inline-flex; align-items: center; justify-content: center; gap: 8px; } .btn.new-debt svg { width: 22px; height: 22px; }
+
+/* ───── CliQ ───── */
+.cliq-logo { display: inline-grid; place-items: center; flex: none; min-width: 52px; height: 32px; padding: 0 8px; border-radius: 10px; background: #0b7a75; color: #fff; font-weight: 800; font-size: 14px; letter-spacing: .3px; direction: ltr; font-family: system-ui, sans-serif; }
+.cliq-card { display: flex; align-items: center; gap: 10px; background: var(--sheet); border-radius: 20px; box-shadow: var(--shadow); padding: 12px 14px; }
+.cliq-card.due { box-shadow: 0 0 0 2px var(--owe), var(--shadow); }
+.cliq-card .who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cliq-card .who b { font-size: 19px; font-weight: 800; text-align: start; }
+.cliq-card .who .muted { white-space: normal; }
+.cliq-card input { flex: 1; min-width: 0; min-height: 44px; }
+.cliq-add { border: 2px dashed color-mix(in srgb, var(--accent) 35%, transparent); background: transparent; border-radius: 20px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--ink-soft); font-weight: 600; text-align: start; }

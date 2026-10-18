@@ -8,6 +8,8 @@ export interface AppCtx {
   backend: Backend;
   me: Phone;
   myName: string;
+  /** My CliQ alias, "" if I haven't added one. */
+  myCliq: string;
   contacts: Contact[];
   txns: Txn[];
   friends: Friend[];

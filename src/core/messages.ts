@@ -107,9 +107,10 @@ function balanceForThem(balanceForMe: Fils, d: Dialect = "jo"): string {
   return balanceForMe > 0 ? `صار عليك إلي ${j(balanceForMe)}` : `صار إلك عندي ${j(-balanceForMe)}`;
 }
 
-export function waReminder(otherName: string, balanceForMe: Fils, d: Dialect = "jo"): string {
-  if (d === "eg") return `أهلاً يا ${otherName} 🌷 حبيت أفكّرك إن عليك ليا ${j(balanceForMe)}. شكراً ليك.`;
-  return `مرحبا ${otherName} 🌷 حبيت أذكّرك إنه الرصيد اللي عليك إلي ${j(balanceForMe)}. شكراً إلك.`;
+export function waReminder(otherName: string, balanceForMe: Fils, d: Dialect = "jo", myCliq = ""): string {
+  const pay = myCliq ? (d === "eg" ? `\nتقدر تحوّل على CliQ: ${myCliq}` : `\nبتقدر تحوّل على CliQ: ${myCliq}`) : "";
+  if (d === "eg") return `أهلاً يا ${otherName} 🌷 حبيت أفكّرك إن عليك ليا ${j(balanceForMe)}. شكراً ليك.${pay}`;
+  return `مرحبا ${otherName} 🌷 حبيت أذكّرك إنه الرصيد اللي عليك إلي ${j(balanceForMe)}. شكراً إلك.${pay}`;
 }
 
 const dfmt = new Intl.DateTimeFormat("ar-JO", { day: "numeric", month: "short", year: "numeric", numberingSystem: "latn" });
