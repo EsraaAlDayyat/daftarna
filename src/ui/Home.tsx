@@ -5,7 +5,7 @@ import type { PushState } from "../data/backend";
 import { seedDemo } from "../data/demoBackend";
 import { useApp } from "./AppContext";
 import { Avatar } from "./Avatar";
-import { Plus } from "./icons";
+import { Gear, Plus } from "./icons";
 import { FriendSheet } from "./FriendSheet";
 import { AddFriendSheet } from "./AddFriendSheet";
 import { SplitFlow } from "./SplitFlow";
@@ -65,8 +65,8 @@ export function Home() {
             <div className="hello">{t.hi(myName)}</div>
             <h1>{tab === "groups" ? t.appName : tab === "friends" ? t.tabFriends : t.tabAccounts}</h1>
           </div>
-          <button className="me-btn" onClick={() => setOpen({ kind: "settings" })} aria-label={t.settings}>
-            <Avatar name={myName} id={me} size={46} />
+          <button className="icon-btn" onClick={() => setOpen({ kind: "settings" })} aria-label={t.settings}>
+            <Gear />
           </button>
         </div>
 
