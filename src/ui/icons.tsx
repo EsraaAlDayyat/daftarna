@@ -44,3 +44,10 @@ export const Arrow = ({ dir }: { dir: "up" | "down" | "up-right" | "down-left" }
   const d = { up: "M12 19V5M6 11l6-6 6 6", down: "M12 5v14M6 13l6 6 6-6", "up-right": "M7 17 17 7M9 7h8v8", "down-left": "M17 7 7 17M15 17H7V9" }[dir];
   return <I><path d={d} /></I>;
 };
+export const Book = () => <I><path d="M12 6c-2-1.5-5-2-8-1.5v14c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5v-14c-3-.5-6 0-8 1.5z" /><path d="M12 6v14M15 9.5h2.5M15 12.5h2.5" /></I>;
+export const Bolt = () => <I><path d="M13 3 5 13h6l-1 8 8-10h-6z" /></I>;
+export const Phone = () => <I><rect x="7" y="3" width="10" height="18" rx="2" /><path d="M11 18h2" /></I>;
+export const Send = () => <I><path d="M4 12 20 4l-4 16-4-6z" /><path d="m12 14 8-10" /></I>;
+export const Shield = () => <I><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z" /><path d="m9 12 2 2 4-4" /></I>;
+export const Install = () => <I><rect x="6" y="2.5" width="12" height="19" rx="2.5" /><path d="M12 8v6M9.5 11.5 12 14l2.5-2.5" /></I>;
+export const Heart = () => <I><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /></I>;

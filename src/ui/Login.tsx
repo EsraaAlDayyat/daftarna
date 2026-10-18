@@ -1,8 +1,11 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { displayPhone, normalizePhone, type Phone } from "../core/phone";
 import type { Backend, PhoneSignIn } from "../data/backend";
 import { DEMO_CODE } from "../data/demoBackend";
 import { DIALECTS, useDialect } from "./i18n";
+import { Bolt, Book, Heart, Install, Phone as PhoneIcon, Send, Shield } from "./icons";
+import { canInstall, onInstallChange, promptInstall } from "./install";
+import { isIos, isStandalone } from "./util";
 
 /** Small switch to pick the app's dialect. Shown on sign-in and in settings. */
 export function DialectPicker() {
@@ -59,45 +62,85 @@ export function Login({ backend, user, invited }: { backend: Backend; user: { ph
     catch { setErr(t.nameFailed); setBusy(false); }
   }
 
+  const hero = (
+    <div className="login-hero">
+      <span className="app-icon" aria-hidden="true"><Book /><span className="ver num"><Bolt />٢.٠</span></span>
+      <h1>{t.appName}</h1>
+      <p className="saying">{t.saying}</p>
+    </div>
+  );
+
   if (user && !user.name) {
     return (
-      <form className="login" onSubmit={saveName}>
-        <h1>{t.hello}</h1>
-        <p className="tag">{t.whatsYourName}</p>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t.namePh} aria-label={t.nameLabel} maxLength={40} />
-        {err && <p className="err">{err}</p>}
-        <button className="btn big block" disabled={busy || !name.trim()}>{t.start}</button>
-      </form>
+      <div className="login">
+        <DialectPicker />
+        {hero}
+        <form className="login-card" onSubmit={saveName}>
+          <b className="hello">{t.hello}</b>
+          <label className="l" htmlFor="nm">{t.whatsYourName}</label>
+          <input id="nm" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t.namePh} aria-label={t.nameLabel} maxLength={40} />
+          {err && <p className="err">{err}</p>}
+          <button className="btn big block" disabled={busy || !name.trim()}>{t.start}</button>
+        </form>
+      </div>
     );
   }
 
   return (
     <div className="login">
       <DialectPicker />
-      <p className="saying">{t.saying}</p>
-      <div className="login-art" aria-hidden="true"><span>🍕</span><span>☕</span><span>🧾</span></div>
-      <h1>{t.appName}</h1>
-      <p className="tag">{t.tagline}</p>
+      {hero}
       {invited && <p className="banner"><span>{t.invitedLogin}</span></p>}
-      {step === "phone" ? (
-        <form onSubmit={sendCode} style={{ display: "contents" }}>
-          <label className="l" htmlFor="ph">{t.phoneLabel}</label>
-          <input id="ph" autoFocus inputMode="tel" dir="ltr" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="079 123 4567" />
-          {err && <p className="err">{err}</p>}
-          <button className="btn big block" disabled={busy}>{busy ? t.wait : t.sendCode}</button>
-          <p className="note">{t.phoneHint}</p>
-        </form>
-      ) : (
-        <form onSubmit={confirm} style={{ display: "contents" }}>
-          <p>{t.codeSent} <b dir="ltr">{displayPhone(phone)}</b></p>
-          <input className="code-input" autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={6} dir="ltr" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} aria-label={t.codeLabel} placeholder="••••••" />
-          {err && <p className="err">{err}</p>}
-          <button className="btn big block" disabled={busy || code.length < 6}>{busy ? t.wait : t.confirm}</button>
-          <button type="button" className="link-btn" onClick={() => { setStep("phone"); setCode(""); setErr(""); }}>{t.changeNumber}</button>
-        </form>
-      )}
+      <div className="login-card">
+        {step === "phone" ? (
+          <form onSubmit={sendCode} className="login-form">
+            <div className="or-line"><span>{t.loginOr}</span></div>
+            <label className="l with-ic" htmlFor="ph"><PhoneIcon />{t.phoneLabel}</label>
+            <div className="phone-field" dir="ltr">
+              <span className="cc"><span aria-hidden="true">🇯🇴</span> +962</span>
+              <input id="ph" autoFocus inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="79 123 4567" />
+            </div>
+            <p className="note">{t.phoneExample}</p>
+            {err && <p className="err">{err}</p>}
+            <button className="btn big block" disabled={busy}><Send />{busy ? t.wait : t.sendCode}</button>
+          </form>
+        ) : (
+          <form onSubmit={confirm} className="login-form">
+            <p>{t.codeSent} <b dir="ltr">{displayPhone(phone)}</b></p>
+            <input className="code-input" autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={6} dir="ltr" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} aria-label={t.codeLabel} placeholder="••••••" />
+            {err && <p className="err">{err}</p>}
+            <button className="btn big block" disabled={busy || code.length < 6}>{busy ? t.wait : t.confirm}</button>
+            <button type="button" className="link-btn" onClick={() => { setStep("phone"); setCode(""); setErr(""); }}>{t.changeNumber}</button>
+          </form>
+        )}
+        <p className="secure"><Shield />{t.secureNote}</p>
+      </div>
       {demo && <p className="banner"><span>{t.demoLogin(DEMO_CODE)}</span></p>}
+      <InstallTip />
+      <div className="tip-card">
+        <span className="ic green"><Heart /></span>
+        <span className="who"><b>{t.freeTitle}</b><span className="muted">{t.freeText}</span></span>
+      </div>
+      <p className="login-foot">{t.footer(new Date().getFullYear())}</p>
       <div ref={captcha} />
+    </div>
+  );
+}
+
+/** "Install it like an app": a real button on Android Chrome, otherwise the steps. Hidden once installed. */
+function InstallTip() {
+  const { t } = useDialect();
+  const [, bump] = useState(0);
+  useEffect(() => onInstallChange(() => bump((n) => n + 1)), []);
+  if (isStandalone()) return null;
+  return (
+    <div className="tip-card soft">
+      <span className="ic"><Install /></span>
+      <span className="who">
+        <b>{t.installTitle} <Bolt /></b>
+        <span className="muted">{isIos() ? t.installIos : t.installAndroid}</span>
+      </span>
+      {canInstall() && <button className="btn small" onClick={() => promptInstall()}>{t.installNow}</button>}
     </div>
   );
 }
