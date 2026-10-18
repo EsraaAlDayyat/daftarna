@@ -3,9 +3,9 @@
 import { createContext, useContext } from "react";
 
 export type Dialect = "jo" | "eg";
-export const DIALECTS: { id: Dialect; label: string; flag: string }[] = [
-  { id: "jo", label: "أردني", flag: "🇯🇴" },
-  { id: "eg", label: "مصري", flag: "🇪🇬" },
+export const DIALECTS: { id: Dialect; label: string; flag: string; title: string; examples: string[] }[] = [
+  { id: "jo", label: "أردني", flag: "🇯🇴", title: "نشامى (أردني)", examples: ["☕ قهوة السهرة", "🚗 قسط المشوار"] },
+  { id: "eg", label: "مصري", flag: "🇪🇬", title: "جدعان (مصري)", examples: ["🥙 فطار المحطة", "🚕 سهم التاكسي"] },
 ];
 
 const jo = {
@@ -51,7 +51,7 @@ const jo = {
 
   // Sign in
   phoneLabel: "رقم تلفونك",
-  sendCode: "ابعتلي كود",
+  sendCode: "إرسال رمز التأكيد",
   phoneHint: "بنستعمل رقمك عشان نربطك بأصحابك بس.",
   badPhone: "الرقم مش مزبوط. اكتبه هيك: 079 123 4567",
   codeFailed: "ما وصل الكود. تأكد من الرقم وجرّب كمان مرة.",
@@ -64,7 +64,7 @@ const jo = {
   whatsYourName: "شو اسمك؟ هيك رح يشوفك أصحابك.",
   nameLabel: "اسمك",
   namePh: "مثلاً: سارة",
-  start: "يلا نبلش",
+  start: "جاهز، يلا نبلّش 🚀",
   nameFailed: "ما انحفظ الاسم، جرّب كمان مرة.",
   demoLogin: (code: string) => `تجربة: اكتب أي رقم أردني، والكود ${code}.`,
   invitedLogin: "انعزمت على جروب 🎉 سجّل دخول عشان تنضم.",
@@ -79,6 +79,18 @@ const jo = {
   freeTitle: "مجاني وبدون إعلانات",
   freeText: "للطلعات والمصاريف بين الأصحاب، بروقان وبدون إحراج",
   footer: (y: number) => `دفترنا © ${y.toLocaleString("ar-JO", { useGrouping: false })}، صُنع بمحبة لتيسير الحسابات بين الأحباب`,
+  welcomeTitle: "أهلاً فيك بدفترنا!",
+  welcomeText: "خطوة صغيرة وبتكون جاهز تريّح راسك من الحساب",
+  nameTitle: "اسمك بالدفتر",
+  nameChip: "كيف بنادوك أصحابك؟",
+  nameHint: "اسمك الأول أو الاسم اللي الكل بيعرفك فيه، عشان يسهل يميّزوك بالجروبات",
+  phoneTitle: "رقم تلفونك",
+  verified: "متأكّد",
+  phoneWhy: "عشان أصحابك يقدروا يضيفوك ويقسموا معك الفواتير",
+  dialectTitle: "لهجة دفترنا",
+  dialectAnytime: "بتقدر تغيّرها بأي وقت",
+  secureLong: "بياناتك محفوظة ومشفّرة. دفترنا بيساعدك تصفّي حسابات طلعاتك ومصاريف البيت بهدوء وبدون إحراج.",
+  nextStep: "الخطوة الجاية: اعمل أو انضم لأول جروب",
   saying: "ريّح راسك من الحساب، دفترنا بيتذكّر عنك 💜",
 
   // Home
@@ -388,7 +400,7 @@ const eg: Strings = {
   oweShort: "عليك",
 
   phoneLabel: "رقم موبايلك",
-  sendCode: "ابعتلي كود",
+  sendCode: "إرسال رمز التأكيد",
   phoneHint: "بنستخدم رقمك عشان نوصّلك بصحابك بس.",
   badPhone: "الرقم مش مظبوط. اكتبه كده: 079 123 4567",
   codeFailed: "الكود ما وصلش. اتأكد من الرقم وجرّب تاني.",
@@ -401,7 +413,7 @@ const eg: Strings = {
   whatsYourName: "اسمك إيه؟ كده هيشوفك صحابك.",
   nameLabel: "اسمك",
   namePh: "مثلاً: سارة",
-  start: "يلا نبدأ",
+  start: "جاهز، يلا نبدأ 🚀",
   nameFailed: "الاسم ما اتحفظش، جرّب تاني.",
   demoLogin: (code) => `تجربة: اكتب أي رقم أردني، والكود ${code}.`,
   invitedLogin: "اتعزمت على جروب 🎉 سجّل دخول عشان تدخله.",
@@ -416,6 +428,18 @@ const eg: Strings = {
   freeTitle: "مجاني ومن غير إعلانات",
   freeText: "للخروجات والمصاريف بين الصحاب، بروقان ومن غير إحراج",
   footer: (y: number) => `دفترنا © ${y.toLocaleString("ar-JO", { useGrouping: false })}، معمول بحب عشان الحسابات تبقى سهلة بين الحبايب`,
+  welcomeTitle: "أهلاً بيك في دفترنا!",
+  welcomeText: "خطوة صغيرة وتبقى جاهز تريّح دماغك من الحساب",
+  nameTitle: "اسمك في الدفتر",
+  nameChip: "صحابك بينادوك إزاي؟",
+  nameHint: "اسمك الأول أو الاسم اللي الكل عارفك بيه، عشان يميّزوك بسهولة في الجروبات",
+  phoneTitle: "رقم موبايلك",
+  verified: "اتأكّد",
+  phoneWhy: "عشان صحابك يقدروا يضيفوك ويقسموا معاك الفواتير",
+  dialectTitle: "لهجة دفترنا",
+  dialectAnytime: "تقدر تغيّرها في أي وقت",
+  secureLong: "بياناتك محفوظة ومشفّرة. دفترنا بيساعدك تصفّي حسابات خروجاتك ومصاريف البيت بهدوء ومن غير إحراج.",
+  nextStep: "الخطوة الجاية: اعمل أو انضم لأول جروب",
   saying: "ريّح دماغك من الحساب، دفترنا فاكر عنك 💜",
 
   hi: (n) => `أهلاً يا ${n} 👋`,

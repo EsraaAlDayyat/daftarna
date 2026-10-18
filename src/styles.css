@@ -522,3 +522,50 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 .tip-card .who b svg { width: 16px; height: 16px; vertical-align: -2px; color: #e8a400; fill: currentColor; }
 .login-foot { text-align: center; color: var(--ink-soft); font-size: 13px; margin: 0 0 8px; }
 .tip-card .who .muted { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.5; }
+
+/* ───── Profile step after the code ───── */
+.profile { gap: 14px; }
+.welcome .ic { background: var(--accent); color: var(--on-accent); }
+.profile-pic { display: grid; place-items: center; padding: 6px 0; }
+.profile-pic .av { box-shadow: 0 0 0 8px var(--sheet), 0 14px 30px color-mix(in srgb, var(--accent) 25%, transparent); font-weight: 800; }
+.pc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.pc-head b { font-size: 18px; font-weight: 800; }
+.pc-head .status svg { width: 14px; height: 14px; vertical-align: -2px; fill: currentColor; }
+.pc-head .status { background: var(--accent-soft); }
+.pc-head .status.pos { background: var(--paid-bg); }
+.pc-head .muted { font-size: 13px; }
+.field-ic { display: flex; align-items: center; gap: 8px; background: var(--accent-soft); border-radius: 18px; padding: 4px 14px; }
+.field-ic input { border: 0; background: transparent; min-height: 48px; padding: 0; flex: 1; min-width: 0; font-size: 17px; }
+.field-ic input:focus { outline: none; }
+.field-ic:focus-within { box-shadow: 0 0 0 2px var(--accent); }
+.field-ic svg { width: 22px; height: 22px; color: var(--ink-soft); flex: none; }
+.ph-done { flex: 1; font-size: 20px; font-weight: 700; padding: 0 8px; }
+.phone-field .ok { color: var(--paid); display: grid; place-items: center; padding-inline-end: 8px; }
+.phone-field .ok svg { width: 24px; height: 24px; }
+.dialect-cards { display: flex; flex-direction: column; gap: 10px; }
+.dcard { border: 2px solid transparent; background: var(--paper); border-radius: 20px; padding: 14px; display: flex; gap: 12px; align-items: flex-start; text-align: start; cursor: pointer; color: var(--ink); }
+.dcard[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.dcard .flag { width: 44px; height: 44px; border-radius: 50%; background: var(--sheet); display: grid; place-items: center; font-size: 22px; flex: none; }
+.dcard .who { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dcard .who b { font-size: 17px; font-weight: 800; }
+.dcard .who .muted { font-size: 13.5px; }
+.dcard .ex { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.dcard .ex span { background: var(--sheet); border-radius: 99px; padding: 3px 10px; font-size: 13px; font-weight: 600; }
+.dcard .radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--ink-soft); flex: none; margin-top: 10px; }
+.dcard[aria-checked="true"] .radio { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 45%, transparent 50%); }
+.secure-card { margin: 0; align-items: flex-start; }
+.secure-card .muted { line-height: 1.6; font-size: 14px; }
+.next-step { margin: -4px 0 8px; text-align: center; color: var(--ink-soft); font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.dot-g { width: 8px; height: 8px; border-radius: 50%; background: var(--paid); }
+.tip-card.soft.welcome .ic { background: var(--accent); color: var(--on-accent); }
+.profile-pic .av { border-radius: 50%; }
+.dcard .who .muted { white-space: normal; overflow: visible; }
+.dcard .ex { flex-direction: row; }
+.dcard .ex span { display: inline-block; width: auto; white-space: nowrap; }
+.dcard { position: relative; padding-inline-end: 44px; }
+.dcard .radio { position: absolute; top: 16px; inset-inline-end: 14px; margin: 0; }
+.dcard .ex span { padding: 3px 9px; font-size: 12.5px; }
+.dcard { gap: 10px; padding-inline-end: 38px; }
+.dcard .radio { inset-inline-end: 12px; }
+.dcard .ex { gap: 4px; }
+.dcard .ex span { padding: 2px 8px; font-size: 12px; }

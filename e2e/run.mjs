@@ -45,11 +45,11 @@ const toFils = (s) => Math.round(parseFloat(
 
 async function signIn(p, phone, name) {
   await p.getByLabel("رقم تلفونك").fill(phone);
-  await p.getByRole("button", { name: "ابعتلي كود" }).click();
+  await p.getByRole("button", { name: "إرسال رمز التأكيد" }).click();
   await p.getByLabel("الكود").fill("123456");
   await p.getByRole("button", { name: "تأكيد" }).click();
   await p.getByLabel("اسمك").fill(name);
-  await p.getByRole("button", { name: "يلا نبلش" }).click();
+  await p.getByRole("button", { name: /يلا نبلّش/ }).click();
   await p.locator(".wrap").waitFor({ state: "attached" });
 }
 
@@ -57,7 +57,7 @@ async function signIn(p, phone, name) {
 const sara = await ctx.newPage();
 watchErrors(sara, "sara");
 await sara.goto(URL);
-await sara.getByRole("button", { name: "ابعتلي كود" }).waitFor();
+await sara.getByRole("button", { name: "إرسال رمز التأكيد" }).waitFor();
 await shot(sara, "login");
 await sara.getByRole("radio", { name: /مصري/ }).click();
 check(await sara.getByText(/ريّح دماغك من الحساب/).isVisible() && await sara.getByLabel("رقم موبايلك").isVisible(), "switches the words to Egyptian");
@@ -66,11 +66,11 @@ await sara.getByRole("radio", { name: /أردني/ }).click();
 check(await sara.getByLabel("رقم تلفونك").isVisible(), "and back to Jordanian");
 
 await sara.getByLabel("رقم تلفونك").fill("123");
-await sara.getByRole("button", { name: "ابعتلي كود" }).click();
+await sara.getByRole("button", { name: "إرسال رمز التأكيد" }).click();
 check(await sara.getByText("الرقم مش مزبوط").isVisible(), "rejects an invalid phone number");
 
 await sara.getByLabel("رقم تلفونك").fill("0791111111");
-await sara.getByRole("button", { name: "ابعتلي كود" }).click();
+await sara.getByRole("button", { name: "إرسال رمز التأكيد" }).click();
 await sara.getByLabel("الكود").fill("000000");
 await sara.getByRole("button", { name: "تأكيد" }).click();
 check(await sara.getByText("الكود غلط").isVisible(), "rejects a wrong code");
@@ -79,7 +79,7 @@ await sara.getByLabel("الكود").fill("123456");
 await sara.getByRole("button", { name: "تأكيد" }).click();
 await sara.getByLabel("اسمك").fill("سارة");
 await shot(sara, "name");
-await sara.getByRole("button", { name: "يلا نبلش" }).click();
+await sara.getByRole("button", { name: /يلا نبلّش/ }).click();
 await sara.locator(".gtile.new").waitFor();
 await shot(sara, "empty-home");
 check(true, "sign-in flow");

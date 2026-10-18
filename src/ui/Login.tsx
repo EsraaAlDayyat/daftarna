@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { displayPhone, normalizePhone, type Phone } from "../core/phone";
 import type { Backend, PhoneSignIn } from "../data/backend";
 import { DEMO_CODE } from "../data/demoBackend";
-import { DIALECTS, useDialect } from "./i18n";
-import { Bolt, Book, Heart, Install, Phone as PhoneIcon, Send, Shield } from "./icons";
+import { DIALECTS, STRINGS, useDialect } from "./i18n";
+import { Avatar } from "./Avatar";
+import { Bolt, Book, Contacts, Heart, Install, Phone as PhoneIcon, Send, Shield } from "./icons";
 import { canInstall, onInstallChange, promptInstall } from "./install";
 import { isIos, isStandalone } from "./util";
 
@@ -72,17 +73,42 @@ export function Login({ backend, user, invited }: { backend: Backend; user: { ph
 
   if (user && !user.name) {
     return (
-      <div className="login">
-        <DialectPicker />
-        {hero}
-        <form className="login-card" onSubmit={saveName}>
-          <b className="hello">{t.hello}</b>
-          <label className="l" htmlFor="nm">{t.whatsYourName}</label>
-          <input id="nm" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t.namePh} aria-label={t.nameLabel} maxLength={40} />
-          {err && <p className="err">{err}</p>}
-          <button className="btn big block" disabled={busy || !name.trim()}>{t.start}</button>
-        </form>
-      </div>
+      <form className="login profile" onSubmit={saveName}>
+        <div className="tip-card soft welcome">
+          <span className="ic"><Book /></span>
+          <span className="who"><b>{t.welcomeTitle} 💜</b><span className="muted">{t.welcomeText}</span></span>
+        </div>
+        <div className="profile-pic"><Avatar name={name || "؟"} id={user.phone} size={150} /></div>
+
+        <section className="login-card">
+          <div className="pc-head"><b>{t.nameTitle}</b><span className="status">{t.nameChip}</span></div>
+          <div className="field-ic">
+            <input id="nm" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t.namePh} aria-label={t.nameLabel} maxLength={40} />
+            <Contacts />
+          </div>
+          <p className="note">💡 {t.nameHint}</p>
+        </section>
+
+        <section className="login-card">
+          <div className="pc-head"><b>{t.phoneTitle}</b><span className="status pos"><Bolt /> {t.verified}</span></div>
+          <p className="note">{t.phoneWhy}</p>
+          <div className="phone-field" dir="ltr">
+            <span className="cc"><span aria-hidden="true">🇯🇴</span> +962</span>
+            <span className="ph-done num">{displayPhone(user.phone).replace(/^0/, "")}</span>
+            <span className="ok" aria-label={t.verified}><Shield /></span>
+          </div>
+        </section>
+
+        <section className="login-card">
+          <div className="pc-head"><b>{t.dialectTitle}</b><span className="muted">{t.dialectAnytime}</span></div>
+          <DialectCards />
+        </section>
+
+        <p className="tip-card soft secure-card"><span className="ic"><Shield /></span><span className="muted">{t.secureLong}</span></p>
+        {err && <p className="err">{err}</p>}
+        <button className="btn big block" disabled={busy || !name.trim()}>{t.start}</button>
+        <p className="next-step"><span className="dot-g" aria-hidden="true" />{t.nextStep}</p>
+      </form>
     );
   }
 
@@ -123,6 +149,26 @@ export function Login({ backend, user, invited }: { backend: Backend; user: { ph
       </div>
       <p className="login-foot">{t.footer(new Date().getFullYear())}</p>
       <div ref={captcha} />
+    </div>
+  );
+}
+
+/** Big dialect choice with a taste of the words each one uses. */
+function DialectCards() {
+  const { t, dialect, setDialect } = useDialect();
+  return (
+    <div className="dialect-cards" role="radiogroup" aria-label={t.dialect}>
+      {DIALECTS.map((d) => (
+        <button type="button" key={d.id} role="radio" aria-checked={dialect === d.id} className="dcard" onClick={() => setDialect(d.id)}>
+          <span className="flag" aria-hidden="true">{d.flag}</span>
+          <span className="who">
+            <b>{d.title}</b>
+            <span className="muted">"{STRINGS[d.id].saying.replace(/\s*💜$/, "")}"</span>
+            <span className="ex">{d.examples.map((x) => <span key={x}>{x}</span>)}</span>
+          </span>
+          <span className="radio" aria-hidden="true" />
+        </button>
+      ))}
     </div>
   );
 }
