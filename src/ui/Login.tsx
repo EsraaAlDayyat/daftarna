@@ -42,8 +42,14 @@ export function Login({ backend, user, invited }: { backend: Backend; user: { ph
     try {
       pending.current = await backend.startPhoneSignIn(p, captcha.current!);
       setPhone(p); setStep("code");
-    } catch {
-      setErr(t.codeFailed);
+    } catch (e) {
+      // Say what went wrong in plain words where we can, and keep the code for me to read
+      const code = String((e as { code?: string })?.code ?? (e as Error)?.message ?? "").replace(/^auth\//, "");
+      const why = code === "too-many-requests" || code === "quota-exceeded" ? t.codeTooMany
+        : code === "invalid-phone-number" ? t.badPhone
+        : code === "network-request-failed" ? t.codeNetwork
+        : t.codeFailed;
+      setErr(code ? `${why} (${code})` : why);
     } finally { setBusy(false); }
   }
 

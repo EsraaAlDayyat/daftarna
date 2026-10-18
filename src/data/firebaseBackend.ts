@@ -78,8 +78,14 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
       return () => { un(); unsubProfile?.(); };
     },
     async startPhoneSignIn(phone, recaptchaEl) {
-      const verifier = new RecaptchaVerifier(auth, recaptchaEl, { size: "invisible" });
-      const res = await signInWithPhoneNumber(auth, phone, verifier);
+      // A fresh widget each try: a used or failed reCAPTCHA can't be reused
+      recaptchaEl.innerHTML = "";
+      const holder = document.createElement("div");
+      recaptchaEl.appendChild(holder);
+      const verifier = new RecaptchaVerifier(auth, holder, { size: "invisible" });
+      let res;
+      try { res = await signInWithPhoneNumber(auth, phone, verifier); }
+      catch (e) { try { verifier.clear(); } catch { /* */ } throw e; }
       return { async confirm(code) { await res.confirm(code.trim()); } };
     },
     async saveName(name) {

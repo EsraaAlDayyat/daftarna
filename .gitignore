@@ -50,3 +50,4 @@ Thumbs.db
 
 # Local demo bundle (built for sharing, not source)
 daftarna-demo.html
+.env*.local
