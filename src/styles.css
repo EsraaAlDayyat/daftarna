@@ -569,3 +569,38 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 .dcard .radio { inset-inline-end: 12px; }
 .dcard .ex { gap: 4px; }
 .dcard .ex span { padding: 2px 8px; font-size: 12px; }
+
+/* ───── Settings ───── */
+.settings-list { gap: 12px; }
+.set-card { background: var(--sheet); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.set-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.set-head .ic { width: 38px; height: 38px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none; }
+.set-head .ic svg { width: 20px; height: 20px; }
+.set-head b { font-size: 18px; font-weight: 800; }
+.set-head .muted { font-size: 13px; margin-inline-start: auto; }
+.me-card { flex-direction: row; align-items: center; gap: 14px; background: linear-gradient(135deg, var(--accent-soft), var(--sheet)); }
+.me-card .av { border-radius: 50%; box-shadow: 0 0 0 4px var(--sheet); font-weight: 800; flex: none; }
+.me-card .who { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.me-card .who b { font-size: 22px; font-weight: 800; }
+.me-card .who .phone-line { font-size: 15px; font-weight: 600; color: var(--ink-soft); }
+.me-card .status svg { width: 13px; height: 13px; vertical-align: -2px; fill: currentColor; }
+.me-card .icon-btn { flex: none; }
+.name-edit { flex: 1; display: flex; gap: 8px; min-width: 0; }
+.name-edit input { flex: 1; min-width: 0; min-height: 46px; }
+.theme-seg button { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 64px; }
+.theme-seg button svg { width: 22px; height: 22px; }
+.share-card { border: 0; cursor: pointer; text-align: start; width: 100%; color: var(--ink); }
+.share-card .go { color: var(--accent); display: grid; place-items: center; }
+.share-card .go svg { width: 22px; height: 22px; }
+.demo-card { display: flex; align-items: center; gap: 12px; background: var(--owe-bg); border-radius: var(--r-card); padding: 14px 16px; }
+.demo-card .who { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.demo-card .who b { color: var(--owe); font-weight: 800; }
+.demo-card .who span { white-space: normal; overflow: visible; font-size: 13.5px; color: var(--ink); }
+.demo-card .btn { flex: none; text-decoration: none; }
+.btn.signout { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--sheet); color: var(--owe); box-shadow: var(--shadow); min-height: 54px; }
+.btn.signout svg { width: 20px; height: 20px; transform: scaleX(-1); }
+.welcome-h { font-size: 28px !important; margin: 4px 0 0; }
+.privacy-line { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; font-size: 13.5px; color: var(--ink-soft); text-align: center; }
+.privacy-line svg { width: 18px; height: 18px; color: var(--paid); flex: none; }
+.login .demo-card .btn { white-space: nowrap; }
+.demo-card .who b { white-space: normal; overflow: visible; }

@@ -4,7 +4,7 @@ import type { Backend, PhoneSignIn } from "../data/backend";
 import { DEMO_CODE } from "../data/demoBackend";
 import { DIALECTS, STRINGS, useDialect } from "./i18n";
 import { Avatar } from "./Avatar";
-import { Bolt, Book, Contacts, Heart, Install, Phone as PhoneIcon, Send, Shield } from "./icons";
+import { Bolt, Book, Contacts, Install, Phone as PhoneIcon, Send, Shield } from "./icons";
 import { canInstall, onInstallChange, promptInstall } from "./install";
 import { isIos, isStandalone } from "./util";
 
@@ -74,40 +74,26 @@ export function Login({ backend, user, invited }: { backend: Backend; user: { ph
   if (user && !user.name) {
     return (
       <form className="login profile" onSubmit={saveName}>
-        <div className="tip-card soft welcome">
-          <span className="ic"><Book /></span>
-          <span className="who"><b>{t.welcomeTitle} 💜</b><span className="muted">{t.welcomeText}</span></span>
+        <div className="login-hero">
+          <div className="profile-pic"><Avatar name={name || "؟"} id={user.phone} size={120} /></div>
+          <h1 className="welcome-h">{t.welcomeTitle}</h1>
         </div>
-        <div className="profile-pic"><Avatar name={name || "؟"} id={user.phone} size={150} /></div>
 
         <section className="login-card">
-          <div className="pc-head"><b>{t.nameTitle}</b><span className="status">{t.nameChip}</span></div>
+          <div className="pc-head"><b>{t.nameChip}</b></div>
           <div className="field-ic">
             <input id="nm" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t.namePh} aria-label={t.nameLabel} maxLength={40} />
             <Contacts />
           </div>
-          <p className="note">💡 {t.nameHint}</p>
         </section>
 
         <section className="login-card">
-          <div className="pc-head"><b>{t.phoneTitle}</b><span className="status pos"><Bolt /> {t.verified}</span></div>
-          <p className="note">{t.phoneWhy}</p>
-          <div className="phone-field" dir="ltr">
-            <span className="cc"><span aria-hidden="true">🇯🇴</span> +962</span>
-            <span className="ph-done num">{displayPhone(user.phone).replace(/^0/, "")}</span>
-            <span className="ok" aria-label={t.verified}><Shield /></span>
-          </div>
+          <div className="pc-head"><b>{t.dialectTitle}</b></div>
+          <DialectPicker />
         </section>
 
-        <section className="login-card">
-          <div className="pc-head"><b>{t.dialectTitle}</b><span className="muted">{t.dialectAnytime}</span></div>
-          <DialectCards />
-        </section>
-
-        <p className="tip-card soft secure-card"><span className="ic"><Shield /></span><span className="muted">{t.secureLong}</span></p>
         {err && <p className="err">{err}</p>}
         <button className="btn big block" disabled={busy || !name.trim()}>{t.start}</button>
-        <p className="next-step"><span className="dot-g" aria-hidden="true" />{t.nextStep}</p>
       </form>
     );
   }
@@ -120,7 +106,6 @@ export function Login({ backend, user, invited }: { backend: Backend; user: { ph
       <div className="login-card">
         {step === "phone" ? (
           <form onSubmit={sendCode} className="login-form">
-            <div className="or-line"><span>{t.loginOr}</span></div>
             <label className="l with-ic" htmlFor="ph"><PhoneIcon />{t.phoneLabel}</label>
             <div className="phone-field" dir="ltr">
               <span className="cc"><span aria-hidden="true">🇯🇴</span> +962</span>
@@ -141,20 +126,20 @@ export function Login({ backend, user, invited }: { backend: Backend; user: { ph
         )}
         <p className="secure"><Shield />{t.secureNote}</p>
       </div>
-      {demo && <p className="banner"><span>{t.demoLogin(DEMO_CODE)}</span></p>}
+      {demo && (
+        <div className="demo-card">
+          <span className="who"><b>{t.inDemoTitle}</b><span>{t.demoLogin(DEMO_CODE)} {t.noSmsInDemo}</span></span>
+          <a className="btn small" href="/">{t.openReal}</a>
+        </div>
+      )}
       <InstallTip />
-      <div className="tip-card">
-        <span className="ic green"><Heart /></span>
-        <span className="who"><b>{t.freeTitle}</b><span className="muted">{t.freeText}</span></span>
-      </div>
-      <p className="login-foot">{t.footer(new Date().getFullYear())}</p>
       <div ref={captcha} />
     </div>
   );
 }
 
 /** Big dialect choice with a taste of the words each one uses. */
-function DialectCards() {
+export function DialectCards() {
   const { t, dialect, setDialect } = useDialect();
   return (
     <div className="dialect-cards" role="radiogroup" aria-label={t.dialect}>
@@ -174,7 +159,7 @@ function DialectCards() {
 }
 
 /** "Install it like an app": a real button on Android Chrome, otherwise the steps. Hidden once installed. */
-function InstallTip() {
+export function InstallTip() {
   const { t } = useDialect();
   const [, bump] = useState(0);
   useEffect(() => onInstallChange(() => bump((n) => n + 1)), []);
