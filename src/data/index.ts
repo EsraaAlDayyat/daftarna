@@ -1,7 +1,10 @@
 import type { Backend } from "./backend";
 import { createDemoBackend } from "./demoBackend";
 
-const env = import.meta.env;
+// Tolerate a config pasted with quotes or commas (e.g. copied from the Firebase console snippet)
+const clean = (v: unknown) => String(v ?? "").trim().replace(/^[A-Za-z]+\s*:\s*/, "").replace(/[",;']/g, "").trim();
+const raw = import.meta.env;
+const env = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, k.startsWith("VITE_FIREBASE_") ? clean(v) : v])) as Record<string, string>;
 
 /** Uses the demo backend when Firebase isn't configured, or when the URL has ?demo. */
 export async function createBackend(): Promise<Backend> {
