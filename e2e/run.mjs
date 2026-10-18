@@ -88,8 +88,8 @@ check(true, "sign-in flow");
 const tab = (p, name) => p.getByRole("navigation").getByRole("button", { name }).click();
 await tab(sara, /أصحابي/);
 for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3333"]]) {
-  await sara.getByRole("button", { name: "ضيف برقمه" }).click();
-  await sara.getByLabel("الاسم").fill(name);
+  await sara.getByRole("button", { name: /ضيف بالرقم/ }).click();
+  await sara.getByLabel("الاسم", { exact: true }).fill(name);
   await sara.getByLabel("رقم التلفون").fill(phone);
   if (name === "أحمد") await shot(sara, "add-friend");
   await sara.getByRole("button", { name: "احفظ" }).click();
@@ -115,10 +115,10 @@ for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3
 }
 await sara.getByRole("button", { name: "سكّر" }).click();
 await shot(sara, "home-two-friends");
-const friendRow = await text(sara, ".row:has-text('أحمد') .bal");
+const friendRow = await text(sara, ".frow:has-text('أحمد') .side");
 check(friendRow.includes("١٠ د.أ") && friendRow.includes("بدّي منه"), "friends tab shows Ahmad owes me 10", `row: ${friendRow}`);
-check((await sara.locator(".row:has-text('لينا')").count()) === 1, "friends tab lists Lina too");
-await tab(sara, /تصفية حساباتي/);
+check((await sara.locator(".frow:has-text('لينا')").count()) === 1, "friends tab lists Lina too");
+await tab(sara, /جهات الاتصال/);
 const ahmadRow = await text(sara, ".acc.in .row:has-text('أحمد') .bal");
 check(ahmadRow.includes("١٠ د.أ"), "Ahmad is under 'owed to me' with his amount", `Ahmad's row: ${ahmadRow}`);
 check((await text(sara, ".acc.in .acc-sum")).includes("١٠"), "total owed to me");
@@ -136,7 +136,7 @@ const inviteUrl = "http://" + (await text(sara, ".invite-link"));
 check(/[?&]join=/.test(inviteUrl), "group has an invite link", `invite link: ${inviteUrl}`);
 for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "0773333333"]]) {
   await sara.getByRole("button", { name: "+ ضيف برقمه" }).click();
-  await sara.getByLabel("الاسم").fill(name);
+  await sara.getByLabel("الاسم", { exact: true }).fill(name);
   await sara.getByLabel("رقم التلفون").fill(phone);
   await sara.getByRole("button", { name: "احفظ" }).click();
   await sara.getByRole("dialog").getByRole("heading", { name: "الشلة" }).waitFor();
@@ -166,7 +166,7 @@ check((await sara.locator(".warn").count()) === 0, "warning clears after the fix
 await sara.getByRole("button", { name: "التالي: مين كان موجود" }).click();
 check(await sara.getByRole("button", { name: "أحمد", exact: true }).getAttribute("aria-pressed") === "true", "group members start as present");
 await sara.getByRole("button", { name: "+ حد جديد" }).click();
-await sara.getByLabel("الاسم").fill("عمر");
+await sara.getByLabel("الاسم", { exact: true }).fill("عمر");
 await sara.getByLabel("رقم التلفون").fill("0794444444");
 await sara.getByRole("button", { name: "ضيفه" }).click();
 await shot(sara, "split-people");
@@ -197,7 +197,7 @@ await shot(sara, "split-done");
 const waButtons = await sara.getByRole("link", { name: /ابعت واتساب لـ/ }).count();
 check(waButtons === 3, "WhatsApp button for each of the three", `WhatsApp buttons: ${waButtons}`);
 await sara.getByRole("button", { name: "تمام، ورّيني الحساب" }).click();
-await sara.getByRole("heading", { name: "تصفية حساباتي" }).waitFor();
+await sara.locator(".acc.in .row").first().waitFor();
 const owedRows = await sara.locator(".acc.in .row").allInnerTexts();
 check(["أحمد", "لينا", "عمر"].every((n) => owedRows.some((r) => r.includes(n))), "after the split, the accounts tab lists everyone who owes me", `rows: ${owedRows.join(" | ")}`);
 
@@ -230,7 +230,7 @@ await tab(sara, /جروباتي/);
 await sara.locator(".gtile", { hasText: "الشلة" }).click();
 check((await sara.getByRole("dialog").locator(".orders .row").count()) === 0, "the order closes once its bill is recorded");
 await sara.getByRole("button", { name: "سكّر" }).click();
-await tab(sara, /تصفية حساباتي/);
+await tab(sara, /جهات الاتصال/);
 await shot(sara, "home-after-split");
 await noHorizontalScroll(sara, "home");
 
@@ -245,8 +245,8 @@ await signIn(ahmad, "+962 78 222 2222", "أحمد");
 await shot(ahmad, "ahmad-home");
 await tab(ahmad, /جروباتي/);
 check((await ahmad.locator(".gtile", { hasText: "الشلة" }).count()) === 1, "Ahmad sees the group he was added to");
-await tab(ahmad, /تصفية حساباتي/);
-await ahmad.getByRole("button", { name: /عليّ للناس/ }).click();
+await tab(ahmad, /جهات الاتصال/);
+await ahmad.locator(".acc.out .acc-more").click();
 await shot(ahmad, "ahmad-accounts");
 const saraForAhmad = await text(ahmad, ".acc.out .row:has-text('سارة')").catch(() => "");
 check(saraForAhmad.length > 0, "Ahmad sees Sara under 'I owe'", `Ahmad sees: ${saraForAhmad}`);
@@ -268,7 +268,7 @@ await sara.bringToFront();
 const notified = await sara.locator(".toast.push").first().waitFor({ timeout: 4000 }).then(() => true, () => false);
 check(notified, "Sara gets a notification when Ahmad settles");
 await shot(sara, "sara-notified");
-await tab(sara, /تصفية حساباتي/);
+await tab(sara, /جهات الاتصال/);
 check((await sara.locator(".acc .row:has-text('أحمد')").count()) === 0, "once settled, Ahmad leaves Sara's owed lists");
 
 // ───────── Reverse an entry ─────────
