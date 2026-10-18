@@ -110,7 +110,7 @@ export function Home() {
         ) : tab === "friends" ? (
           <FriendsTab friends={friends} onFriend={openFriend} onAdd={() => setOpen({ kind: "add" })} />
         ) : (
-          <AccountsTab friends={friends} onFriend={openFriend} part={accPart} setPart={setAccPart} />
+          <AccountsTab friends={friends} onFriend={openFriend} onAdd={() => setOpen({ kind: "add" })} part={accPart} setPart={setAccPart} />
         )}
       </div>
 

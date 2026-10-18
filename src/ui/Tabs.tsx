@@ -7,7 +7,7 @@ import { waLink, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
-import { Arrow, Chat, Contacts, Dialpad, Handshake, Search, Share, Trend, Wallet } from "./icons";
+import { Arrow, Chat, Contacts, Dialpad, Handshake, Plus, Search, Share, Trend, Wallet } from "./icons";
 import type { Friend } from "./model";
 import { canPickContacts, pickContacts } from "./contacts";
 import { useDialect } from "./i18n";
@@ -144,13 +144,14 @@ function RemindSheet({ friends, onClose }: { friends: Friend[]; onClose: () => v
 
 const MONTH = 30 * 86_400_000;
 
-export function AccountsTab({ friends, onFriend, part: openPart, setPart: setOpenPart }: {
-  friends: Friend[]; onFriend: (p: Phone) => void;
+export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart: setOpenPart }: {
+  friends: Friend[]; onFriend: (p: Phone) => void; onAdd: () => void;
   part: "in" | "out" | null; setPart: (p: "in" | "out" | null) => void;
 }) {
   const { t } = useDialect();
   const { txns, me } = useApp();
   const [pick, setPick] = useState(false);
+  const [newDebt, setNewDebt] = useState(false);
   const theyOwe = friends.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
   const iOwe = friends.filter((f) => f.balance < 0).sort((a, b) => a.balance - b.balance);
   const sum = (l: Friend[]) => l.reduce((s, f) => s + Math.abs(f.balance), 0);
@@ -227,6 +228,8 @@ export function AccountsTab({ friends, onFriend, part: openPart, setPart: setOpe
       {part("in", theyOwe, inSum)}
       {part("out", iOwe, outSum)}
 
+      <button className="btn big block new-debt" onClick={() => setNewDebt(true)}><Plus />{t.newDebtWith}</button>
+
       {(theyOwe.length > 0 || iOwe.length > 0) && (
         <div className="pay-row">
           <button className="btn big paid" onClick={() => setPick(true)}><Wallet />{t.recordPayment}</button>
@@ -241,6 +244,11 @@ export function AccountsTab({ friends, onFriend, part: openPart, setPart: setOpe
         <span className="who"><b>{t.friendshipTitle}</b><span className="muted">{t.friendshipText}</span></span>
       </div>
 
+      {newDebt && (
+        <NewDebtSheet friends={friends} onClose={() => setNewDebt(false)}
+          onPick={(p) => { setNewDebt(false); onFriend(p); }}
+          onAdd={() => { setNewDebt(false); onAdd(); }} />
+      )}
       {pick && <PickFriendSheet friends={[...theyOwe, ...iOwe]} onClose={() => setPick(false)} onPick={(p) => { setPick(false); onFriend(p); }} />}
     </>
   );
@@ -267,6 +275,66 @@ function LatestBill() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** New debt: pick one of my friends, or add someone new by contacts or number. */
+function NewDebtSheet({ friends, onClose, onPick, onAdd }: { friends: Friend[]; onClose: () => void; onPick: (p: Phone) => void; onAdd: () => void }) {
+  const { t } = useDialect();
+  const { backend, me, toast } = useApp();
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const query = q.trim();
+  const digits = query.replace(/\D/g, "");
+  const shown = friends
+    .filter((f) => !query || f.name.includes(query) || (digits && f.phone.includes(digits)))
+    .sort((a, b) => a.name.localeCompare(b.name, "ar"));
+
+  async function fromContacts() {
+    setBusy(true);
+    try {
+      const { picked } = await pickContacts();
+      const fresh = picked.filter((c) => c.phone !== me);
+      for (const c of fresh) await backend.saveContact(c);
+      if (fresh.length) onPick(fresh[0].phone);
+    } catch { toast(t.tryAgain); } finally { setBusy(false); }
+  }
+
+  return (
+    <Sheet title={t.newDebtWith} onClose={onClose}>
+      <div className="add-cards">
+        {canPickContacts() && (
+          <button className="add-card" disabled={busy} onClick={fromContacts}>
+            <span className="ic"><Contacts /></span>
+            <b>{t.fromContacts}</b>
+          </button>
+        )}
+        <button className="add-card" onClick={onAdd}>
+          <span className="ic green"><Dialpad /></span>
+          <b>{t.addByNumberTitle}</b>
+        </button>
+      </div>
+      {friends.length > 0 && (
+        <>
+          <div className="section-h"><b>{t.orFromFriends}</b></div>
+          {friends.length > 5 && (
+            <label className="searchbar">
+              <Search />
+              <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t.searchFriends} aria-label={t.searchFriends} />
+            </label>
+          )}
+          <div className="list">
+            {shown.map((f) => (
+              <button key={f.phone} className="row" onClick={() => onPick(f.phone)}>
+                <Avatar name={f.name} id={f.phone} />
+                <span className="who"><b>{f.name}</b></span>
+                {f.balance !== 0 && <span className={`bal num ${f.balance > 0 ? "pos" : "neg"}`}>{jod(Math.abs(f.balance))}<small>{f.balance > 0 ? t.theyOweMeTab : t.iOweThemTab}</small></span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </Sheet>
   );
 }
 
