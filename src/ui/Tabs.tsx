@@ -11,7 +11,6 @@ import { Arrow, Chat, Contacts, Dialpad, Handshake, Plus, Search, Share, Trend, 
 import type { Friend } from "./model";
 import { canPickContacts, pickContacts } from "./contacts";
 import { useDialect } from "./i18n";
-import { dateLabel } from "./util";
 
 // ───────────────────────── My friends ─────────────────────────
 
@@ -43,36 +42,20 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
 
   return (
     <section aria-label={t.tabFriends} className="stack">
-      <label className="searchbar">
-        <Search />
-        <input type="search" placeholder={t.searchFriends} value={q} onChange={(e) => setQ(e.target.value)} aria-label={t.searchFriends} />
-        <span className="count num" aria-hidden="true">{friends.length.toLocaleString("ar-JO")}</span>
-      </label>
-
-      <div className="add-cards">
-        {canPickContacts() && (
-          <button className="add-card" disabled={busy} onClick={fromContacts}>
-            <span className="ic"><Contacts /></span>
-            <span className="tag">{t.androidOnly}</span>
-            <b>{t.fromContacts}</b>
-            <span className="muted">{t.fromContactsHint}</span>
-          </button>
-        )}
-        <button className="add-card" onClick={onAdd}>
-          <span className="ic green"><Dialpad /></span>
-          <span className="tag green" dir="ltr">+962</span>
-          <b>{t.addByNumberTitle}</b>
-          <span className="muted">{t.addByNumberHint}</span>
-        </button>
-      </div>
+      <button className="btn big block add-friend" onClick={onAdd}><Plus />{t.addFriendBtn}</button>
 
       {friends.length > 0 && (
-        <div className="summary-bar">
-          <b><Handshake />{t.friendsSummary}</b>
-          <span className="pos num"><Arrow dir="down" />{jod(owedToMe)} {t.owedShortMe}</span>
-          <span className="dot" aria-hidden="true">·</span>
-          <span className="neg num"><Arrow dir="up" />{jod(iOwe)} {t.oweShortMe}</span>
+        <div className="totals">
+          <span className="tot pos"><small>{t.youGet}</small><b className="num">{jod(owedToMe)}</b></span>
+          <span className="tot neg"><small>{t.youOwe}</small><b className="num">{jod(iOwe)}</b></span>
         </div>
+      )}
+
+      {friends.length > 5 && (
+        <label className="searchbar">
+          <Search />
+          <input type="search" placeholder={t.searchFriends} value={q} onChange={(e) => setQ(e.target.value)} aria-label={t.searchFriends} />
+        </label>
       )}
 
       <div className="list">
@@ -81,6 +64,7 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
             <div className="empty-emoji" aria-hidden="true">🤝</div>
             <h3>{t.noOneYet}</h3>
             <div>{t.noFriendsHint}</div>
+            {canPickContacts() && <button className="btn soft" disabled={busy} onClick={fromContacts}><Contacts />{t.fromContacts}</button>}
           </div>
         ) : !shown.length ? (
           <div className="empty">{t.noMatch(q)}</div>
@@ -88,33 +72,25 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
           const n = comments.filter((c) => f.txns.some((x) => x.id === c.txnId)).length;
           const cls = f.balance > 0 ? "pos" : f.balance < 0 ? "neg" : "zero";
           return (
-            <button key={f.phone} className="frow" onClick={() => onFriend(f.phone)}>
-              <Avatar name={f.name} id={f.phone} size={56} />
+            <button key={f.phone} className="frow soft" onClick={() => onFriend(f.phone)}>
+              <Avatar name={f.name} id={f.phone} size={50} />
               <span className="who">
                 <span className="name-line">
                   <b>{f.name}</b>
                   {n > 0 && <span className="cchip num"><Chat />{n.toLocaleString("ar-JO")}</span>}
                 </span>
-                <span>{f.txns[0] ? `${f.txns[0].note || t.entry} · ${dateLabel(f.txns[0].createdAt, t)}` : t.nothingYet}</span>
-              </span>
-              <span className="side">
-                <small>{cls === "pos" ? t.theyOweMeTab : cls === "neg" ? t.iOweThemTab : t.currentBalance}</small>
-                <span className={`pill num ${cls}`}>
-                  {jod(Math.abs(f.balance))}
-                  {cls === "zero" ? <Wallet /> : <Trend dir={cls === "pos" ? "up" : "down"} />}
+                <span className={`say ${cls}`}>
+                  {cls === "pos" ? t.friendOwesMe(jod(f.balance)) : cls === "neg" ? t.iOweFriend(jod(-f.balance)) : t.nothingBetween}
                 </span>
               </span>
+              <span className="chev" aria-hidden="true">‹</span>
             </button>
           );
         })}
       </div>
 
       {friends.some((f) => f.balance > 0) && (
-        <div className="tip-card">
-          <span className="ic"><Chat /></span>
-          <span className="who"><b>{t.remindTitle}</b><span className="muted">{t.remindHint}</span></span>
-          <button className="btn small soft" onClick={() => setRemind(true)}>{t.share}</button>
-        </div>
+        <button className="link-btn remind-link" onClick={() => setRemind(true)}>📣 {t.remindAll}</button>
       )}
       {remind && <RemindSheet friends={friends.filter((f) => f.balance > 0)} onClose={() => setRemind(false)} />}
     </section>

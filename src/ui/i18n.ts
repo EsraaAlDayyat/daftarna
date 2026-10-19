@@ -122,6 +122,13 @@ const jo = {
   viaSms: "رسالة",
   viaAsk: "اسألني",
   sendSms: "ابعت رسالة",
+  addFriendBtn: "ضيف صاحب",
+  youGet: "إلك عند الناس",
+  youOwe: "عليك للناس",
+  friendOwesMe: (a: string) => `بدّك منه ${a}`,
+  iOweFriend: (a: string) => `بدّه منك ${a}`,
+  nothingBetween: "ما في إشي بيناتكم 🤍",
+  remindAll: "ذكّر اللي عليهم",
   saying: "ريّح راسك من الحساب، دفترنا بيتذكّر عنك 💜",
 
   // Home
@@ -504,6 +511,13 @@ const eg: Strings = {
   viaSms: "رسالة",
   viaAsk: "اسألني",
   sendSms: "ابعت رسالة",
+  addFriendBtn: "ضيف صاحب",
+  youGet: "ليك عند الناس",
+  youOwe: "عليك للناس",
+  friendOwesMe: (a: string) => `ليك عنده ${a}`,
+  iOweFriend: (a: string) => `ليه عندك ${a}`,
+  nothingBetween: "مفيش حاجة بينكم 🤍",
+  remindAll: "فكّر اللي عليهم",
   saying: "ريّح دماغك من الحساب، دفترنا فاكر عنك 💜",
 
   hi: (n) => `أهلاً يا ${n} 👋`,

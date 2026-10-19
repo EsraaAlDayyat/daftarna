@@ -617,3 +617,23 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 .cliq-add { border: 2px dashed color-mix(in srgb, var(--accent) 35%, transparent); background: transparent; border-radius: 20px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--ink-soft); font-weight: 500; text-align: start; }
 .send-pair { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .tip-card .who b { white-space: normal; overflow: visible; text-overflow: clip; }
+
+/* ───── Friends tab, softer ───── */
+.btn.add-friend { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.add-friend svg, .empty .btn svg { width: 22px; height: 22px; }
+.totals { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tot { border-radius: 20px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+.tot small { font-size: 13px; color: var(--ink-soft); }
+.tot b { font-size: 22px; font-weight: 700; }
+.tot.pos { background: var(--paid-bg); } .tot.pos b { color: var(--paid); }
+.tot.neg { background: var(--owe-bg); } .tot.neg b { color: var(--owe); }
+.frow.soft { padding: 12px 14px; gap: 12px; }
+.frow.soft .name-line b { font-size: 18px; font-weight: 700; }
+.frow .say { font-size: 15px; font-weight: 500; display: block; }
+.frow .say.pos { color: var(--paid); } .frow .say.neg { color: var(--owe); } .frow .say.zero { color: var(--ink-soft); font-weight: 400; }
+.frow .chev { color: var(--ink-soft); font-size: 26px; line-height: 1; opacity: .5; }
+.remind-link { align-self: center; font-size: 15px; }
+.empty .btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; }
+.frow .who > span.say.pos { color: var(--paid); } .frow .who > span.say.neg { color: var(--owe); }
+.frow .who > span.say { font-size: 15px; font-weight: 500; }
+.frow.soft .name-line b { color: var(--ink); }

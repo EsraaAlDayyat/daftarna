@@ -90,7 +90,7 @@ check(true, "sign-in flow");
 const tab = (p, name) => p.getByRole("navigation").getByRole("button", { name }).click();
 await tab(sara, /أصحابي/);
 for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3333"]]) {
-  await sara.getByRole("button", { name: /ضيف بالرقم/ }).click();
+  await sara.getByRole("button", { name: "ضيف صاحب" }).click();
   await sara.getByLabel("الاسم", { exact: true }).fill(name);
   await sara.getByLabel("رقم التلفون").fill(phone);
   if (name === "أحمد") await shot(sara, "add-friend");
@@ -117,8 +117,8 @@ for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3
 }
 await sara.getByRole("button", { name: "سكّر" }).click();
 await shot(sara, "home-two-friends");
-const friendRow = await text(sara, ".frow:has-text('أحمد') .side");
-check(friendRow.includes("١٠ د.أ") && friendRow.includes("بدّي منه"), "friends tab shows Ahmad owes me 10", `row: ${friendRow}`);
+const friendRow = await text(sara, ".frow:has-text('أحمد') .say");
+check(friendRow.includes("١٠ د.أ") && friendRow.includes("بدّك منه"), "friends tab shows Ahmad owes me 10", `row: ${friendRow}`);
 check((await sara.locator(".frow:has-text('لينا')").count()) === 1, "friends tab lists Lina too");
 await tab(sara, /جهات الاتصال/);
 const ahmadRow = await text(sara, ".acc.in .row:has-text('أحمد') .bal");
