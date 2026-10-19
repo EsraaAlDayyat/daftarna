@@ -88,7 +88,7 @@ check(true, "sign-in flow");
 
 // ───────── Add friends and a manual entry ─────────
 const tab = (p, name) => p.getByRole("navigation").getByRole("button", { name }).click();
-await tab(sara, /أصحابي/);
+await tab(sara, /جهات الاتصال/);
 for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3333"]]) {
   await sara.getByRole("button", { name: "ضيف صاحب" }).click();
   await sara.getByLabel("الاسم", { exact: true }).fill(name);
@@ -120,7 +120,7 @@ await shot(sara, "home-two-friends");
 const friendRow = await text(sara, ".frow:has-text('أحمد') .say");
 check(friendRow.includes("١٠ د.أ") && friendRow.includes("بدّك منه"), "friends tab shows Ahmad owes me 10", `row: ${friendRow}`);
 check((await sara.locator(".frow:has-text('لينا')").count()) === 1, "friends tab lists Lina too");
-await tab(sara, /جهات الاتصال/);
+await tab(sara, /ملخص الحساب/);
 const ahmadRow = await text(sara, ".acc.in .row:has-text('أحمد') .bal");
 check(ahmadRow.includes("١٠ د.أ"), "Ahmad is under 'owed to me' with his amount", `Ahmad's row: ${ahmadRow}`);
 check((await text(sara, ".acc.in .acc-sum")).includes("١٠"), "total owed to me");
@@ -232,7 +232,7 @@ await tab(sara, /جروباتي/);
 await sara.locator(".gtile", { hasText: "الشلة" }).click();
 check((await sara.getByRole("dialog").locator(".orders .row").count()) === 0, "the order closes once its bill is recorded");
 await sara.getByRole("button", { name: "سكّر" }).click();
-await tab(sara, /جهات الاتصال/);
+await tab(sara, /ملخص الحساب/);
 await shot(sara, "home-after-split");
 await noHorizontalScroll(sara, "home");
 
@@ -247,7 +247,7 @@ await signIn(ahmad, "+962 78 222 2222", "أحمد");
 await shot(ahmad, "ahmad-home");
 await tab(ahmad, /جروباتي/);
 check((await ahmad.locator(".gtile", { hasText: "الشلة" }).count()) === 1, "Ahmad sees the group he was added to");
-await tab(ahmad, /جهات الاتصال/);
+await tab(ahmad, /ملخص الحساب/);
 await ahmad.locator(".acc.out .acc-more").click();
 await shot(ahmad, "ahmad-accounts");
 const saraForAhmad = await text(ahmad, ".acc.out .row:has-text('سارة')").catch(() => "");
@@ -270,7 +270,7 @@ await sara.bringToFront();
 const notified = await sara.locator(".toast.push").first().waitFor({ timeout: 4000 }).then(() => true, () => false);
 check(notified, "Sara gets a notification when Ahmad settles");
 await shot(sara, "sara-notified");
-await tab(sara, /جهات الاتصال/);
+await tab(sara, /ملخص الحساب/);
 check((await sara.locator(".acc .row:has-text('أحمد')").count()) === 0, "once settled, Ahmad leaves Sara's owed lists");
 
 // ───────── Reverse an entry ─────────

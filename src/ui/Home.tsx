@@ -4,7 +4,7 @@ import type { Phone } from "../core/phone";
 import type { PushState } from "../data/backend";
 import { seedDemo } from "../data/demoBackend";
 import { useApp } from "./AppContext";
-import { Gear, Handshake, Logo, People, Plus, Scale } from "./icons";
+import { Contacts, Gear, Logo, People, Plus, Scale } from "./icons";
 import { AccountsTab, FriendsTab } from "./Tabs";
 import { FriendSheet } from "./FriendSheet";
 import { AddFriendSheet } from "./AddFriendSheet";
@@ -118,11 +118,11 @@ export function Home() {
         <button aria-current={tab === "groups" ? "page" : undefined} onClick={() => setTab("groups")}>
           <People />{t.tabGroups}
         </button>
-        <button aria-current={tab === "friends" ? "page" : undefined} onClick={() => setTab("friends")}>
-          <Handshake />{t.tabFriends}
-        </button>
         <button aria-current={tab === "accounts" ? "page" : undefined} onClick={() => setTab("accounts")}>
           <Scale />{t.tabAccounts}
+        </button>
+        <button aria-current={tab === "friends" ? "page" : undefined} onClick={() => setTab("friends")}>
+          <Contacts />{t.tabFriends}
         </button>
       </nav>
 
