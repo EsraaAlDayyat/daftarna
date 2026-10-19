@@ -93,10 +93,6 @@ export function Login({ backend, user, invited }: { backend: Backend; user: { ph
           </div>
         </section>
 
-        <section className="login-card">
-          <div className="pc-head"><b>{t.dialectTitle}</b></div>
-          <DialectPicker />
-        </section>
 
         {err && <p className="err">{err}</p>}
         <button className="btn big block" disabled={busy || !name.trim()}>{t.start}</button>
@@ -106,7 +102,6 @@ export function Login({ backend, user, invited }: { backend: Backend; user: { ph
 
   return (
     <div className="login">
-      <DialectPicker />
       {hero}
       {invited && <p className="banner"><span>{t.invitedLogin}</span></p>}
       <div className="login-card">

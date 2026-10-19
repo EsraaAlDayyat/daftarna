@@ -98,20 +98,20 @@ describe("ledger", () => {
 describe("message text", () => {
   it("bill share notification", () => {
     const t: Txn = mk({ creditor: SARA, debtor: AHMAD, amount: 4250, kind: "split", note: "غدا الريم", createdBy: SARA, createdByName: "سارة" });
-    expect(notificationText(t, AHMAD, -4250, "غدا الريم")).toBe("ضاف سارة عليك 4.250 د.أ، غدا الريم. عليك إله 4.250 د.أ");
+    expect(notificationText(t, AHMAD, -4250, "غدا الريم")).toBe("أضاف سارة عليك 4.250 د.أ، غدا الريم. عليك له 4.250 د.أ");
   });
   it("payment notification that settles the balance", () => {
     // Ahmad records that Sara paid him
     const t = mk(manualTxn("hePaidMe", AHMAD, SARA, 10000, "", "أحمد"));
-    expect(notificationText(t, SARA, 0)).toBe("سجّل أحمد إنك دفعتله 10 د.أ. ما في إشي بيناتكم هلأ ✓");
+    expect(notificationText(t, SARA, 0)).toBe("سجّل أحمد أنك دفعت عنه 10 د.أ. لا يوجد رصيد بينكما ✓");
   });
   it("WhatsApp message and statement", () => {
     const t = mk(manualTxn("iLentHim", SARA, AHMAD, 2500, "تكسي", "سارة"));
     expect(waTxnMessage(t, SARA, "أحمد", 2500)).toBe(
-      "مرحبا أحمد 👋\nدفعتلك 2.500 د.أ عن: تكسي\n👈 صار المجموع اللي عليك: 2.500 د.أ\n\n📒 دفترنا: https://daftarna-99fad.web.app");
+      "مرحبًا أحمد 👋\nأقرضتك 2.500 د.أ مقابل: تكسي\n👈 إجمالي المستحق عليك: 2.500 د.أ\n\n📒 دفترنا: https://daftarna-99fad.web.app");
     const st = waStatement([t], SARA, "أحمد", "سارة");
     expect(st).toContain("+2.500 تكسي");
-    expect(st).toContain("👈 صار المجموع اللي عليك: 2.500 د.أ");
+    expect(st).toContain("👈 إجمالي المستحق عليك: 2.500 د.أ");
     expect(st.endsWith("https://daftarna-99fad.web.app")).toBe(true);
   });
 });

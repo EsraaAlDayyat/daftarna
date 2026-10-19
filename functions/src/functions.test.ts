@@ -58,7 +58,7 @@ describe("notifications", () => {
     const t = makeTxn({ creditor: S, debtor: A, amount: 4250, kind: "split", note: "فاتورة الريم", createdBy: S, createdByName: "سارة", billId: "b" }, "t1");
     expect(recipientsOf(t)).toEqual([A]);
     const p = pushPayload(t, A, [t]);
-    expect(p.body).toBe("ضاف سارة عليك 4.250 د.أ، فاتورة الريم. عليك إله 4.250 د.أ");
+    expect(p.body).toBe("أضاف سارة عليك 4.250 د.أ، فاتورة الريم. عليك له 4.250 د.أ");
   });
   it("notifies both parties when a third person records the bill", () => {
     const t = makeTxn({ creditor: L, debtor: A, amount: 1000, kind: "split", note: "", createdBy: S, createdByName: "سارة", billId: "b" }, "t2");

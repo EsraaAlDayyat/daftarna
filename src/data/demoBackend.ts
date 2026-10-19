@@ -216,9 +216,9 @@ export function seedDemo(backendMe: Phone, myName: string) {
   const day = 86_400_000, now = Date.now();
   store.groups = store.groups.filter((g) => !g.members.includes(backendMe));
   store.groups.push(
-    { id: uid(), name: "الشلة", emoji: "🍕", members: [backendMe, AHMAD, LINA, OMAR],
+    { id: uid(), name: "الأصدقاء", emoji: "🍕", members: [backendMe, AHMAD, LINA, OMAR],
       names: { [backendMe]: myName, [AHMAD]: "أحمد", [LINA]: "لينا", [OMAR]: "عمر" }, createdBy: backendMe, createdAt: now - 7 * day },
-    { id: uid(), name: "الشغل", emoji: "💼", members: [backendMe, AHMAD],
+    { id: uid(), name: "العمل", emoji: "💼", members: [backendMe, AHMAD],
       names: { [backendMe]: myName, [AHMAD]: "أحمد" }, createdBy: backendMe, createdAt: now - 5 * day },
   );
   const mk = (t: NewTxn, ago: number) => makeTxn(t, uid(), now - ago * day);

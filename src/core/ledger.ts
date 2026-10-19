@@ -26,8 +26,8 @@ export interface Txn {
 export type NewTxn = Omit<Txn, "id" | "parties" | "createdAt"> & { createdAt?: number };
 
 export function makeTxn(t: NewTxn, id: string, now = Date.now()): Txn {
-  if (!Number.isInteger(t.amount) || t.amount <= 0) throw new Error("المبلغ لازم يكون أكبر من صفر");
-  if (t.creditor === t.debtor) throw new Error("الطرفين لازم يكونوا مختلفين");
+  if (!Number.isInteger(t.amount) || t.amount <= 0) throw new Error("يجب أن يكون المبلغ أكبر من صفر");
+  if (t.creditor === t.debtor) throw new Error("يجب أن يكون الطرفان مختلفين");
   return { ...t, id, parties: [t.creditor, t.debtor], createdAt: t.createdAt ?? now };
 }
 
@@ -70,13 +70,13 @@ export function reversedIds(txns: Txn[]): Set<string> {
 
 /** Builds the reversal that cancels an earlier entry. */
 export function reversalOf(t: Txn, by: Phone, byName: string): NewTxn {
-  if (t.kind === "reversal") throw new Error("ما بنقدر نلغي إلغاء");
+  if (t.kind === "reversal") throw new Error("لا يمكن إلغاء عملية إلغاء");
   return {
     creditor: t.debtor,
     debtor: t.creditor,
     amount: t.amount,
     kind: "reversal",
-    note: t.note ? `إلغاء: ${t.note}` : "إلغاء حركة",
+    note: t.note ? `إلغاء: ${t.note}` : "إلغاء قيد",
     createdBy: by,
     createdByName: byName,
     reverses: t.id,
@@ -92,7 +92,7 @@ export function settlementFor(balance: Fils, me: Phone, other: Phone, myName: st
     debtor: balance > 0 ? me : other,
     amount: Math.abs(balance),
     kind: "settle",
-    note: "تصفية الحساب",
+    note: "تسوية الحساب",
     createdBy: me,
     createdByName: myName,
   };

@@ -40,6 +40,6 @@ export function dateLabel(ms: number, t?: { today: string; yesterday: string }):
   const d = new Date(ms), now = new Date();
   const days = Math.floor((new Date(now.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86_400_000);
   if (days === 0) return t?.today ?? "اليوم";
-  if (days === 1) return t?.yesterday ?? "مبارح";
+  if (days === 1) return t?.yesterday ?? "أمس";
   return d.getFullYear() === now.getFullYear() ? dfmt.format(d) : dfmtY.format(d);
 }

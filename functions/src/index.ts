@@ -22,7 +22,7 @@ const DAILY_LIMIT = 30; // receipt reads per user per day
 export const readReceipt = onCall(
   { secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 90, memory: "512MiB", enforceAppCheck: false },
   async (req) => {
-    if (!req.auth?.token.phone_number) throw new HttpsError("unauthenticated", "سجّل دخول أول");
+    if (!req.auth?.token.phone_number) throw new HttpsError("unauthenticated", "سجّل الدخول أولًا");
     const { image, mediaType, orders } = (req.data ?? {}) as { image?: string; mediaType?: string; orders?: unknown };
     // Optional list of who ordered what; ids are short placeholders chosen by the app
     const orderList = Array.isArray(orders)
@@ -40,7 +40,7 @@ export const readReceipt = onCall(
       tx.set(usage, { count: n + 1, at: FieldValue.serverTimestamp() }, { merge: true });
       return n + 1;
     });
-    if (count > DAILY_LIMIT) throw new HttpsError("resource-exhausted", "وصلت الحد اليومي لقراءة الفواتير");
+    if (count > DAILY_LIMIT) throw new HttpsError("resource-exhausted", "بلغت الحد اليومي لقراءة الفواتير");
 
     try {
       return await readReceiptWithClaude({
@@ -50,12 +50,12 @@ export const readReceipt = onCall(
     } catch (e) {
       if (e instanceof ReceiptError) {
         logger.warn("receipt failed", { code: e.code, msg: e.message });
-        if (e.code === "too-big") throw new HttpsError("invalid-argument", "الصورة كبيرة");
-        if (e.code === "bad-image") throw new HttpsError("invalid-argument", "الصورة مش صالحة");
-        if (e.code === "unreadable") throw new HttpsError("failed-precondition", "مش واضحة");
+        if (e.code === "too-big") throw new HttpsError("invalid-argument", "الصورة كبيرة جدًا");
+        if (e.code === "bad-image") throw new HttpsError("invalid-argument", "الصورة غير صالحة");
+        if (e.code === "unreadable") throw new HttpsError("failed-precondition", "غير واضحة");
       }
       logger.error("receipt error", e);
-      throw new HttpsError("internal", "ما قدرنا نقرأ الفاتورة");
+      throw new HttpsError("internal", "تعذّرت قراءة الفاتورة");
     }
   },
 );

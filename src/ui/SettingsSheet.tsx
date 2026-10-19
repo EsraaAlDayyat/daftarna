@@ -6,10 +6,10 @@ import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
 import { getTheme, setTheme, type Theme } from "./theme";
 import { useT } from "./i18n";
-import { DialectPicker, InstallTip } from "./Login";
+import { InstallTip } from "./Login";
 import { normalizeCliq } from "../core/cliq";
 import { getNotifyVia, setNotifyVia, type NotifyVia } from "./notifyPref";
-import { Bell, Bolt, Exit, Globe, Moon, Palette, Pencil, Phone as PhoneIcon, Shield, Sun } from "./icons";
+import { Bell, Bolt, Exit, Moon, Palette, Pencil, Phone as PhoneIcon, Shield, Sun } from "./icons";
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const { backend, me, myName, myCliq, toast } = useApp();
@@ -96,10 +96,6 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           </form>
         </section>
 
-        <section className="set-card">
-          <div className="set-head"><span className="ic"><Globe /></span><b>{t.dialect}</b></div>
-          <DialectPicker />
-        </section>
 
         <section className="set-card">
           <div className="set-head"><span className="ic"><Palette /></span><b>{t.look}</b></div>
