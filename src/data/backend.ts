@@ -104,6 +104,7 @@ export interface Backend {
   createOrder(group: Group, title: string, kind?: "outing"): Promise<Order>;
   setOrderLine(orderId: string, phone: Phone, text: string): Promise<void>;
   closeOrder(orderId: string): Promise<void>;
+  renameOrder(orderId: string, title: string): Promise<void>;
 
   watchTxns(cb: (t: Txn[]) => void): Unsub;
   /** Writes entries (and optionally their bill) in one atomic batch. */

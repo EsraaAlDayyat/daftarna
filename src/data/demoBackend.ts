@@ -152,6 +152,12 @@ export function createDemoBackend(): Backend {
       o.status = "done";
       save();
     },
+    async renameOrder(orderId, title) {
+      const o = store.orders.find((x) => x.id === orderId);
+      if (!me || !o || !o.parties.includes(me)) throw new Error("permission-denied");
+      o.title = title.slice(0, 60);
+      save();
+    },
 
     watchComments(cb) {
       return sub(() => cb(me ? store.comments.filter((c) => c.parties.includes(me!)) : []));

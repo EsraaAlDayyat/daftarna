@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { NewTxn } from "../core/ledger";
 import { waOutingMessage } from "../core/messages";
 import { jod, type Fils } from "../core/money";
-import { computeOuting, NOT_COMING, paidFromLine } from "../core/outing";
+import { computeOuting, lineHasParts, NOT_COMING, paidFromLine } from "../core/outing";
 import { smsLink, waLink, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Avatar } from "./Avatar";
@@ -59,6 +59,7 @@ export function OutingSheet({ id, onClose }: { id: string; onClose: () => void }
   }
 
   const title = step === "calc" ? t.calcOuting : o.title;
+  const mine = result.people.find((x) => x.phone === me);
   const onBack = step === "calc" ? () => setStep("fill") : undefined;
 
   return (
@@ -66,6 +67,7 @@ export function OutingSheet({ id, onClose }: { id: string; onClose: () => void }
       {step === "fill" && (
         <>
           <p className="muted" style={{ margin: "-8px 0 0" }}>{t.outingHint}</p>
+          <OutingName orderId={o.id} value={o.title} />
           <div className="list">
             {people.map((p) => <PaidLine key={p} orderId={o.id} phone={p} name={nameOf(p)} value={o.lines[p] ?? ""} />)}
           </div>
@@ -84,6 +86,16 @@ export function OutingSheet({ id, onClose }: { id: string; onClose: () => void }
             <div className="amt num">{jod(result.total)}</div>
             <div className="lbl">{t.outingShare(jod(result.share), attendees.length)}</div>
           </div>
+
+          {mine && (
+            <div className={`my-outing ${mine.net > 0 ? "pos" : mine.net < 0 ? "neg" : ""}`}>
+              <div className="mo-cells">
+                <span><small>{t.yourShare}</small><b className="num">{jod(mine.share)}</b></span>
+                <span><small>{t.youPaid}</small><b className="num">{jod(mine.paid)}</b></span>
+              </div>
+              <div className="mo-net">{mine.net === 0 ? t.youreEven : mine.net > 0 ? t.youGetBack(jod(mine.net)) : t.youStillOwe(jod(-mine.net))}</div>
+            </div>
+          )}
 
           <div className="section-h"><h3>{t.outingWho}</h3></div>
           <p className="muted" style={{ margin: "-6px 0 0", fontSize: 14 }}>{t.outingWhoHint}</p>
@@ -161,7 +173,7 @@ function PaidLine({ orderId, phone, name, value }: { orderId: string; phone: Pho
   }
   async function save() {
     editing.current = false;
-    const v = text.trim().slice(0, 20);
+    const v = text.trim().slice(0, 60);
     if (v && paidFromLine(v) === null) { toast(t.badAmount); return; }
     await put(v);
   }
@@ -173,15 +185,43 @@ function PaidLine({ orderId, phone, name, value }: { orderId: string; phone: Pho
         <b>{name}</b>
         {out ? <span className="muted">{t.notComing}</span> : (
           <input
-            value={text} placeholder={t.outingPh} aria-label={t.outingOf(name)} maxLength={20} inputMode="decimal"
+            value={text} placeholder={t.outingPh} aria-label={t.outingOf(name)} maxLength={60}
             onFocus={() => { editing.current = true; }}
             onChange={(e) => setText(e.target.value)}
             onBlur={save}
             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
           />
         )}
+        {!out && lineHasParts(text) && paidFromLine(text) !== null && <span className="line-sum">{t.lineSum(jod(paidFromLine(text)!))}</span>}
       </span>
       <button className="chip-btn" onClick={() => put(out ? "" : NOT_COMING)}>{out ? t.coming : t.notComing}</button>
     </div>
+  );
+}
+
+/** The outing's name, editable by anyone in it. Saves when you leave the field. */
+function OutingName({ orderId, value }: { orderId: string; value: string }) {
+  const { backend, toast } = useApp();
+  const t = useT();
+  const [text, setText] = useState(value);
+  const editing = useRef(false);
+  useEffect(() => { if (!editing.current) setText(value); }, [value]);
+  async function save() {
+    editing.current = false;
+    const v = text.trim().slice(0, 60);
+    if (!v) { setText(value); return; }
+    if (v === value) return;
+    try { await backend.renameOrder(orderId, v); }
+    catch { toast(t.tryAgain); }
+  }
+  return (
+    <label className="field outing-name">
+      <span>{t.outingName}</span>
+      <input value={text} placeholder={t.outingNamePh} maxLength={60}
+        onFocus={() => { editing.current = true; }}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
+    </label>
   );
 }

@@ -164,6 +164,10 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
       need();
       await updateDoc(doc(db, "orders", orderId), { status: "done" });
     },
+    async renameOrder(orderId, title) {
+      need();
+      await updateDoc(doc(db, "orders", orderId), { title: title.slice(0, 60) });
+    },
 
     watchComments(cb) {
       const m = need();

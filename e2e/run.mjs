@@ -230,7 +230,10 @@ check((await sara.getByRole("dialog").locator(".orders .row").count()) === 0, "t
 // ───────── Outing: everyone writes what they paid, split equally among those who came ─────────
 await shot(sara, "group-foot");
 await sara.getByRole("button", { name: /^🏕️ طلعة$/ }).click();
-await sara.getByLabel(/ما دفعه أنا/).fill("60");
+await sara.getByLabel("اسم الطلعة").fill("مزرعة دبين");
+await sara.getByLabel("اسم الطلعة").blur();
+await sara.getByLabel(/ما دفعه أنا/).fill("40 مزرعة + 20 لحمة");
+check(await sara.getByText("المجموع: ٦٠").first().isVisible(), "itemized amounts are added up as you type");
 await sara.getByLabel("ما دفعه أحمد").fill("30");
 await sara.getByLabel("ما دفعه أحمد").blur();
 await sara.locator(".paid-line", { hasText: "لينا" }).getByRole("button", { name: "لم يحضر" }).click();
@@ -241,10 +244,13 @@ await sara.getByRole("button", { name: /احسب الطلعة/ }).click();
 check((await sara.locator(".outing-row input:checked").count()) === 2, "only people who wrote an amount start as present");
 const ahmadRel = await sara.locator(".outing-row", { hasText: "أحمد" }).locator(".rel").innerText();
 check(/يدفع لك ١٥/.test(ahmadRel), "90 split on two: Ahmad owes me 15", ahmadRel);
+check(/لك ١٥/.test(await sara.locator(".my-outing").innerText()), "my own share card shows I get 15 back");
+check(await sara.getByRole("heading", { name: "احسب الطلعة" }).isVisible(), "calc step is open");
 await shot(sara, "outing-calc");
 await sara.getByRole("button", { name: "اعتماد الحسبة" }).click();
 await sara.getByText("سُجّلت المبالغ في ملخص الحساب").waitFor();
 check((await sara.locator(".share-row").count()) === 1, "a message for each other attendee");
+check((await sara.locator(".share-row a").first().getAttribute("href")).includes(encodeURIComponent("مزرعة دبين")), "the message uses the outing's new name");
 await sara.getByRole("button", { name: "عرض ملخص الحساب" }).click();
 await sara.getByRole("dialog", { name: "الشلة" }).waitFor();
 await sara.waitForTimeout(300);

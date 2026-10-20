@@ -9,6 +9,11 @@ describe("outing", () => {
     expect(paidFromLine("١٢٫٥")).toBe(12500);
     expect(paidFromLine("-")).toBeNull();
     expect(paidFromLine("")).toBeNull();
+    expect(paidFromLine("20 بنزين + 10 فحم")).toBe(30000);
+    expect(paidFromLine("المزرعة ٤٠، أكل 12.5")).toBe(52500);
+    expect(paidFromLine("بنزين")).toBeNull();
+    expect(paidFromLine("12,5")).toBe(12500);
+    expect(paidFromLine("15 لحمة و 5 خبز")).toBe(20000);
   });
 
   it("splits equally and routes through the hub", () => {

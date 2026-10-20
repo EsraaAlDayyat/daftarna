@@ -14,11 +14,30 @@ import type { Phone } from "./phone";
 /** What someone wrote on their line: an amount, or "-" for "I didn't come". */
 export const NOT_COMING = "-";
 
+/**
+ * Reads what someone paid. Accepts a plain amount ("25") or a few amounts with
+ * what they were for ("20 بنزين + 10 فحم"), which are added up.
+ */
 export function paidFromLine(line: string | undefined): Fils | null {
   const s = (line ?? "").trim();
   if (!s || s === NOT_COMING) return null;
-  const f = parseJod(s);
-  return f !== null && f >= 0 ? f : null;
+  let sum = 0;
+  let any = false;
+  for (const part of s.split(/[+＋،]|,\s|\sو\s?/)) {
+    const digits = part.replace(/[^\d٠-٩۰-۹.٫,]/g, "");
+    if (!digits) continue; // just a word, like "بنزين"
+    const f = parseJod(digits);
+    if (f === null || f < 0) return null;
+    sum += f;
+    any = true;
+  }
+  return any ? sum : null;
+}
+
+/** True when the line is more than a single bare number, so the total is worth showing. */
+export function lineHasParts(line: string | undefined): boolean {
+  const s = (line ?? "").trim();
+  return !!s && s !== NOT_COMING && !/^[\d٠-٩۰-۹.٫\s]+$/.test(s);
 }
 
 export interface OutingPerson {
