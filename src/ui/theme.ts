@@ -2,7 +2,8 @@ export type Theme = "system" | "light" | "dark";
 const KEY = "daftarna-theme";
 
 export function getTheme(): Theme {
-  try { return (localStorage.getItem(KEY) as Theme) || "system"; } catch { return "system"; }
+  // Light unless the person picks otherwise: the app keeps its colours even when the phone is in dark mode
+  try { return (localStorage.getItem(KEY) as Theme) || "light"; } catch { return "light"; }
 }
 
 export function applyTheme(t: Theme = getTheme()) {

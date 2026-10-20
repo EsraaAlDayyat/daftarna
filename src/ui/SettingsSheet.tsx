@@ -55,7 +55,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   }
 
   const themes: [Theme, string, React.ReactNode][] = [
-    ["system", t.themeSystem, <PhoneIcon key="s" />], ["light", t.themeLight, <Sun key="l" />], ["dark", t.themeDark, <Moon key="d" />],
+    ["light", t.themeLight, <Sun key="l" />], ["dark", t.themeDark, <Moon key="d" />], ["system", t.themeSystem, <PhoneIcon key="s" />],
   ];
 
   return (

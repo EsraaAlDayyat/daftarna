@@ -42,7 +42,7 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
 
   return (
     <section aria-label={t.tabFriends} className="stack">
-      <button className="btn big block add-friend" onClick={onAdd}><Plus />{t.addFriendBtn}</button>
+      <button className="btn add-small add-friend" onClick={onAdd}><Plus />{t.addFriendBtn}</button>
 
       {friends.length > 0 && (
         <div className="totals">
@@ -230,7 +230,7 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
         </div>
       )}
 
-      <button className="btn big block new-debt" onClick={() => setNewDebt(true)}><Plus />{t.newDebtWith}</button>
+      <button className="btn add-small new-debt" onClick={() => setNewDebt(true)}><Plus />{t.newDebtWith}</button>
       {(theyOwe.length > 0 || iOwe.length > 0) && (
         <div className="pay-row">
           <button className="btn big outline" onClick={() => setPick(true)}><Wallet />{t.recordPayment}</button>
