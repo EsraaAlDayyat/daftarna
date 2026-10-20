@@ -45,10 +45,20 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
       <button className="btn add-small add-friend" onClick={onAdd}><Plus />{t.addFriendBtn}</button>
 
       {friends.length > 0 && (
-        <div className="totals">
-          <span className="tot pos"><small>{t.youGet}</small><b className="num">{jod(owedToMe)}</b></span>
-          <span className="tot neg"><small>{t.youOwe}</small><b className="num">{jod(iOwe)}</b></span>
-        </div>
+        <section className="ocard totals">
+          <div className="split2">
+            <div className="cell">
+              <span className="sq pos"><Arrow dir="down-left" /></span>
+              <span className="lbl">{t.youGet}</span>
+              <b className="num pos">{jod(owedToMe)}</b>
+            </div>
+            <div className="cell">
+              <span className="sq neg"><Arrow dir="up-right" /></span>
+              <span className="lbl">{t.youOwe}</span>
+              <b className="num neg">{jod(iOwe)}</b>
+            </div>
+          </div>
+        </section>
       )}
 
       {friends.length > 5 && (
