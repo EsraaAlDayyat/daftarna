@@ -10,7 +10,7 @@ export function applyTheme(t: Theme = getTheme()) {
   const root = document.documentElement;
   if (t === "system") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", t);
   const dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#16121f" : "#f6f3ff");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#141c18" : "#f3f6f3");
 }
 
 export function setTheme(t: Theme) {
