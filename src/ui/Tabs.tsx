@@ -7,7 +7,7 @@ import { displayPhone, waLink, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
-import { Arrow, Contacts, Dialpad, Handshake, Plus, Search, Share, Trend, Wallet } from "./icons";
+import { Arrow, Contacts, Dialpad, Handshake, Plus, Search, Share, Trend, Wallet, WhatsApp } from "./icons";
 import type { Friend } from "./model";
 import { canPickContacts, pickContacts } from "./contacts";
 import { useDialect } from "./i18n";
@@ -19,6 +19,7 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
   const { backend, me, toast, contacts } = useApp();
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
+  const [reach, setReach] = useState<Friend | null>(null);
   const query = q.trim();
   const digits = query.replace(/\D/g, "");
   const shown = friends
@@ -62,22 +63,46 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
         ) : shown.map((f) => {
           const cliq = contacts.find((c) => c.phone === f.phone)?.cliq;
           return (
-            <button key={f.phone} className="frow soft" onClick={() => onFriend(f.phone)}>
+            <div key={f.phone} className="frow soft contact">
+              {/* The whole card opens the person; the number and CliQ have their own small actions on top */}
+              <button className="frow-hit" aria-label={f.name} onClick={() => onFriend(f.phone)} />
               <Avatar name={f.name} id={f.phone} size={50} />
               <span className="who">
                 <b className="cname">{f.name}</b>
                 <span className="cmeta">
-                  <span className="phone-line num" dir="ltr">{displayPhone(f.phone)}</span>
-                  {cliq && <span className="cliq-mini" dir="ltr"><i>CliQ</i>{cliq}</span>}
+                  <button className="phone-line num" dir="ltr" onClick={() => setReach(f)} aria-label={t.reachOut(f.name)}>{displayPhone(f.phone)}</button>
+                  {cliq && (
+                    <button className="cliq-mini" dir="ltr" aria-label={t.copyCliqOf(f.name)}
+                      onClick={async () => { try { await navigator.clipboard.writeText(cliq); toast(t.cliqCopied); } catch { /* */ } }}>
+                      <i>CliQ</i>{cliq}
+                    </button>
+                  )}
                 </span>
               </span>
               <span className="chev" aria-hidden="true">‹</span>
-            </button>
+            </div>
           );
         })}
       </div>
 
+      {reach && <ReachSheet friend={reach} onClose={() => setReach(null)} />}
     </section>
+  );
+}
+
+/** Call, WhatsApp or text someone straight from the contacts list. */
+function ReachSheet({ friend, onClose }: { friend: Friend; onClose: () => void }) {
+  const { t } = useDialect();
+  const tel = friend.phone;
+  return (
+    <Sheet title={friend.name} lead={<Avatar name={friend.name} id={friend.phone} size={44} />} onClose={onClose}>
+      <p className="muted num" dir="ltr" style={{ margin: "-8px 0 0", textAlign: "end" }}>{displayPhone(friend.phone)}</p>
+      <div className="reach">
+        <a className="btn big outline" href={`tel:${tel}`}>📞 {t.call}</a>
+        <a className="btn big outline" href={waLink(tel, "")} target="_blank" rel="noopener"><WhatsApp />{t.whatsapp}</a>
+        <a className="btn big outline" href={`sms:${tel}`}>💬 {t.viaSms}</a>
+      </div>
+    </Sheet>
   );
 }
 

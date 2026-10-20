@@ -702,3 +702,13 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 .frow .who > span.cmeta { display: flex; white-space: normal; overflow: visible; }
 .frow .cmeta .phone-line, .frow .cmeta .cliq-mini { display: inline-flex; width: auto; }
 .frow .cmeta .cliq-mini i { display: inline; }
+/* Contact rows: the card opens the person; number and CliQ sit on top as small buttons */
+.frow.contact { position: relative; }
+.frow.contact .frow-hit { position: absolute; inset: 0; border: 0; background: transparent; border-radius: inherit; cursor: pointer; z-index: 0; }
+.frow.contact > *:not(.frow-hit) { position: relative; z-index: 1; pointer-events: none; }
+.frow.contact .cmeta button { pointer-events: auto; cursor: pointer; font: inherit; }
+.frow .cmeta button.phone-line { background: none; border: 0; padding: 4px 0; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.frow .cmeta button.cliq-mini { background: var(--sheet); padding: 2px 8px 2px 2px; }
+.reach { display: flex; flex-direction: column; gap: 10px; }
+.reach .btn { justify-content: center; text-decoration: none; }
+.reach .btn svg { width: 22px; height: 22px; }
