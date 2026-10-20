@@ -91,12 +91,16 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit, onOrde
 }) {
   const { groups, friends, me, myName, orders, backend, toast } = useApp();
   const [starting, setStarting] = useState(false);
+  const [invite, setInvite] = useState<boolean | null>(null);
   const t = useT();
   const g = groups.find((x) => x.id === id);
   if (!g) return null;
   const net = groupBalance(g, friends, me);
   const others = g.members.filter((p) => p !== me);
   const alone = others.length === 0;
+  // The invite card is open while you're alone in the group, and folds away once people have joined
+  const showInvite = invite ?? alone;
+  const openOrders = orders.filter((o) => o.groupId === g.id && o.status === "open").sort((a, b) => b.createdAt - a.createdAt);
 
   return (
     <Sheet title={g.name} lead={<span className="g-emoji" aria-hidden="true">{g.emoji}</span>} onClose={onClose} full>
@@ -109,36 +113,14 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit, onOrde
         </div>
       )}
 
-      {!alone && (
-        <section className="orders">
-          <div className="section-h">
-            <h3>{t.orders}</h3>
-            <button className="btn small" disabled={starting} onClick={async () => {
-              setStarting(true);
-              try {
-                const o = await backend.createOrder(g, t.orderTitle(new Date().toLocaleDateString("ar-JO", { weekday: "long" })));
-                onOrder(o.id);
-              } catch { toast(t.tryAgain); setStarting(false); }
-            }}>🛒 {t.newOrder}</button>
-          </div>
-          {orders.filter((o) => o.groupId === g.id && o.status === "open").sort((a, b) => b.createdAt - a.createdAt).map((o) => {
-            const filled = o.parties.filter((p) => o.lines[p]?.trim()).length;
-            return (
-              <button key={o.id} className="row" onClick={() => onOrder(o.id)}>
-                <span className="g-emoji" aria-hidden="true">🛒</span>
-                <span className="who"><b>{o.title}</b><span>{t.orderFilled(filled, o.parties.length)}</span></span>
-              </button>
-            );
-          })}
-        </section>
-      )}
-
-      <InviteCard group={g} />
-
       <div className="section-h">
         <h3>{t.members}</h3>
-        <button className="btn small soft" onClick={onAddMember}>{t.addByPhone}</button>
+        <div className="mini-actions">
+          <button className="btn small soft" onClick={onAddMember}>{t.addByPhone}</button>
+          <button className="btn small soft" aria-expanded={showInvite} onClick={() => setInvite(!showInvite)}>🔗 {t.inviteShort}</button>
+        </div>
       </div>
+      {showInvite && <InviteCard group={g} />}
       <div className="list">
         <div className="row static">
           <Avatar name={myName} id={me} />
@@ -162,7 +144,31 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit, onOrde
         })}
       </div>
 
-      <div className="sticky-foot">
+      {openOrders.length > 0 && (
+        <section className="orders">
+          <div className="section-h"><h3>{t.orders}</h3></div>
+          {openOrders.map((o) => {
+            const filled = o.parties.filter((p) => o.lines[p]?.trim()).length;
+            return (
+              <button key={o.id} className="row" onClick={() => onOrder(o.id)}>
+                <span className="g-emoji" aria-hidden="true">🛒</span>
+                <span className="who"><b>{o.title}</b><span>{t.orderFilled(filled, o.parties.length)}</span></span>
+              </button>
+            );
+          })}
+        </section>
+      )}
+
+      <div className="sticky-foot group-foot">
+        {!alone && (
+          <button className="btn big outline" disabled={starting} onClick={async () => {
+            setStarting(true);
+            try {
+              const o = await backend.createOrder(g, t.orderTitle(new Date().toLocaleDateString("ar-JO", { weekday: "long" })));
+              onOrder(o.id);
+            } catch { toast(t.tryAgain); setStarting(false); }
+          }}>🛒 {t.newOrder}</button>
+        )}
         <button className="btn big warm" onClick={onSplit} disabled={alone}><Receipt />{alone ? t.addSomeoneFirst : t.splitInGroup}</button>
       </div>
     </Sheet>

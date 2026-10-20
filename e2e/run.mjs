@@ -132,7 +132,7 @@ check(await sara.getByRole("button", { name: "أضف شخصًا لتقسيم ا�
 const inviteUrl = "http://" + (await text(sara, ".invite-link"));
 check(/[?&]join=/.test(inviteUrl), "group has an invite link", `invite link: ${inviteUrl}`);
 for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "0773333333"]]) {
-  await sara.getByRole("button", { name: "+ إضافة برقم الهاتف" }).click();
+  await sara.getByRole("button", { name: "+ إضافة", exact: true }).click();
   await sara.getByLabel("الاسم", { exact: true }).fill(name);
   await sara.getByLabel("رقم الهاتف", { exact: true }).fill(phone);
   await sara.getByRole("button", { name: "حفظ", exact: true }).click();

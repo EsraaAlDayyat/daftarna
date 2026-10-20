@@ -712,3 +712,8 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 .reach { display: flex; flex-direction: column; gap: 10px; }
 .reach .btn { justify-content: center; text-decoration: none; }
 .reach .btn svg { width: 22px; height: 22px; }
+/* Group sheet: small member actions, and order + split side by side at the bottom */
+.mini-actions { display: flex; gap: 6px; }
+.group-foot { display: flex; gap: 10px; }
+.group-foot .btn { flex: 1; min-width: 0; padding-inline: 10px; }
+.group-foot .btn.outline { flex: 0 0 auto; background: var(--sheet); }
