@@ -132,7 +132,7 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
   const theyOwe = friends.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
   const iOwe = friends.filter((f) => f.balance < 0).sort((a, b) => a.balance - b.balance);
   const sum = (l: Friend[]) => l.reduce((s, f) => s + Math.abs(f.balance), 0);
-  const inSum = sum(theyOwe), outSum = sum(iOwe), net = inSum - outSum;
+  const inSum = sum(theyOwe), outSum = sum(iOwe);
 
   // Of what people came to owe me in the last 30 days, how much they've paid back
   const rate = useMemo(() => {
@@ -202,10 +202,6 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
       <LatestBill />
 
       <section className="ocard hero">
-        <div className={`status-line ${net > 0 ? "pos" : net < 0 ? "neg" : ""}`}>
-          <span className="i" aria-hidden="true">i</span>
-          <b>{net > 0 ? t.heroGet(jod(net)) : net < 0 ? t.heroOwe(jod(-net)) : t.netZero}</b>
-        </div>
         <div className="split2">
           <div className="cell">
             <span className="sq pos"><Arrow dir="down-left" /></span>
