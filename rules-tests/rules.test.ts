@@ -190,6 +190,14 @@ describe("group orders", () => {
     await assertFails(setDoc(doc(as("l", L), "orders/o3"), order({ parties: [L], createdBy: L })));
   });
 
+  it("an outing is an order of kind 'outing'; no other kinds, and the kind can't change", async () => {
+    await seedGroup();
+    await assertSucceeds(setDoc(doc(as("s", S), "orders/t1"), order({ kind: "outing", title: "طلعة مزرعة" })));
+    await assertFails(setDoc(doc(as("s", S), "orders/t2"), order({ kind: "party" })));
+    await assertSucceeds(updateDoc(doc(as("a", A), "orders/t1"), { lines: { [A]: "25" } }));
+    await assertFails(updateDoc(doc(as("a", A), "orders/t1"), { kind: "party" }));
+  });
+
   it("members fill in lines and close it; outsiders can't see it", async () => {
     await seedGroup();
     await setDoc(doc(as("s", S), "orders/o1"), order());

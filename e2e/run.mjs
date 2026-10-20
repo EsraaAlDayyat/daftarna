@@ -201,7 +201,7 @@ check(["أحمد", "لينا", "عمر"].every((n) => owedRows.some((r) => r.inc
 // ───────── Group order: write who wants what, then the bill assigns itself ─────────
 await tab(sara, /مجموعاتي/);
 await sara.locator(".gtile", { hasText: "الشلة" }).click();
-await sara.getByRole("button", { name: /طلب جديد/ }).click();
+await sara.getByRole("button", { name: /^🛒 طلب$/ }).click();
 await sara.getByLabel(/طلب أنا/).fill("شاورما");
 await sara.getByLabel("طلب أحمد").fill("شاورما وليمون");
 await sara.getByLabel("طلب لينا").fill("فتوش وحمص ومشاوي");
@@ -226,6 +226,29 @@ await sara.getByRole("button", { name: "عرض ملخص الحساب" }).click()
 await tab(sara, /مجموعاتي/);
 await sara.locator(".gtile", { hasText: "الشلة" }).click();
 check((await sara.getByRole("dialog").locator(".orders .row").count()) === 0, "the order closes once its bill is recorded");
+
+// ───────── Outing: everyone writes what they paid, split equally among those who came ─────────
+await shot(sara, "group-foot");
+await sara.getByRole("button", { name: /^🏕️ طلعة$/ }).click();
+await sara.getByLabel(/ما دفعه أنا/).fill("60");
+await sara.getByLabel("ما دفعه أحمد").fill("30");
+await sara.getByLabel("ما دفعه أحمد").blur();
+await sara.locator(".paid-line", { hasText: "لينا" }).getByRole("button", { name: "لم يحضر" }).click();
+await sara.waitForTimeout(300);
+check(await sara.locator(".paid-line.off", { hasText: "لينا" }).isVisible(), "someone can be marked as not coming");
+await shot(sara, "outing");
+await sara.getByRole("button", { name: /احسب الطلعة/ }).click();
+check((await sara.locator(".outing-row input:checked").count()) === 2, "only people who wrote an amount start as present");
+const ahmadRel = await sara.locator(".outing-row", { hasText: "أحمد" }).locator(".rel").innerText();
+check(/يدفع لك ١٥/.test(ahmadRel), "90 split on two: Ahmad owes me 15", ahmadRel);
+await shot(sara, "outing-calc");
+await sara.getByRole("button", { name: "اعتماد الحسبة" }).click();
+await sara.getByText("سُجّلت المبالغ في ملخص الحساب").waitFor();
+check((await sara.locator(".share-row").count()) === 1, "a message for each other attendee");
+await sara.getByRole("button", { name: "عرض ملخص الحساب" }).click();
+await sara.getByRole("dialog", { name: "الشلة" }).waitFor();
+await sara.waitForTimeout(300);
+check((await sara.getByRole("dialog").locator(".orders .row").count()) === 0, "the outing closes once it's calculated");
 await sara.getByRole("button", { name: "إغلاق" }).click();
 await tab(sara, /ملخص الحساب/);
 await shot(sara, "home-after-split");

@@ -62,6 +62,8 @@ export interface Order {
   createdBy: Phone;
   createdAt: number;
   status: "open" | "done";
+  /** "outing": each line is what that person paid, split equally among those who came. */
+  kind?: "outing";
 }
 
 export interface PhoneSignIn {
@@ -99,7 +101,7 @@ export interface Backend {
   addComment(txn: Txn, text: string): Promise<void>;
 
   watchOrders(cb: (o: Order[]) => void): Unsub;
-  createOrder(group: Group, title: string): Promise<Order>;
+  createOrder(group: Group, title: string, kind?: "outing"): Promise<Order>;
   setOrderLine(orderId: string, phone: Phone, text: string): Promise<void>;
   closeOrder(orderId: string): Promise<void>;
 

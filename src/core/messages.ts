@@ -113,3 +113,15 @@ export function commentText(byName: string, text: string, note: string, _d: Dial
   const short = text.length > 120 ? `${text.slice(0, 117)}…` : text;
   return `💬 ${who}${on}: ${short}`;
 }
+
+/** Outing result for one attendee. `net` is from their side: positive = they're owed. */
+export function waOutingMessage(otherName: string, title: string, total: Fils, share: Fils, paid: Fils, net: Fils): string {
+  const lines = [
+    `مرحبًا ${otherName} 👋`,
+    `حسبة ${title} 🏕️`,
+    `المجموع: ${j(total)} — حصة كل شخص: ${j(share)}`,
+    `دفعت: ${j(paid)}`,
+    net === 0 ? "✅ حسابك متعادل" : net > 0 ? `👈 لك: ${j(net)} وسأحوّلها لك` : `👈 عليك: ${j(-net)}`,
+  ];
+  return lines.join("\n") + footer;
+}

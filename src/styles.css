@@ -717,3 +717,17 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 .group-foot { display: flex; gap: 10px; }
 .group-foot .btn { flex: 1; min-width: 0; padding-inline: 10px; }
 .group-foot .btn.outline { flex: 0 0 auto; background: var(--sheet); }
+
+/* ───── Outing ───── */
+.paid-line { align-items: center; }
+.paid-line.off { opacity: .6; }
+.chip-btn {
+  flex: 0 0 auto; border: 0; background: var(--paper); color: var(--ink-soft); box-shadow: inset 0 0 0 1.5px var(--line);
+  border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; align-self: center;
+}
+.outing-row { align-items: center; cursor: pointer; }
+.outing-row input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); flex: 0 0 auto; margin: 0; }
+.outing-row.off { opacity: .55; }
+.outing-row .rel { flex: 0 0 auto; font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+.outing-row .rel.pos { color: var(--accent); }
+.outing-row .rel.neg { color: var(--owe); }

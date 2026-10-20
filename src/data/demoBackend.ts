@@ -131,10 +131,10 @@ export function createDemoBackend(): Backend {
     watchOrders(cb) {
       return sub(() => cb(me ? store.orders.filter((o) => o.parties.includes(me!)).map((o) => ({ ...o, lines: { ...o.lines } })) : []));
     },
-    async createOrder(group, title) {
+    async createOrder(group, title, kind) {
       if (!me || !group.members.includes(me)) throw new Error("permission-denied");
       const o: Order = {
-        id: uid(), groupId: group.id, title, lines: {}, parties: [...group.members], createdBy: me, createdAt: Date.now(), status: "open",
+        id: uid(), groupId: group.id, title, lines: {}, parties: [...group.members], createdBy: me, createdAt: Date.now(), status: "open", ...(kind ? { kind } : {}),
       };
       store.orders.push(o);
       save();

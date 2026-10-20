@@ -91,6 +91,14 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit, onOrde
 }) {
   const { groups, friends, me, myName, orders, backend, toast } = useApp();
   const [starting, setStarting] = useState(false);
+  async function start(kind?: "outing") {
+    setStarting(true);
+    try {
+      const day = new Date().toLocaleDateString("ar-JO", { weekday: "long" });
+      const o = await backend.createOrder(g!, kind ? t.outingTitle(day) : t.orderTitle(day), kind);
+      onOrder(o.id);
+    } catch { toast(t.tryAgain); setStarting(false); }
+  }
   const [invite, setInvite] = useState<boolean | null>(null);
   const t = useT();
   const g = groups.find((x) => x.id === id);
@@ -149,10 +157,11 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit, onOrde
           <div className="section-h"><h3>{t.orders}</h3></div>
           {openOrders.map((o) => {
             const filled = o.parties.filter((p) => o.lines[p]?.trim()).length;
+            const outing = o.kind === "outing";
             return (
               <button key={o.id} className="row" onClick={() => onOrder(o.id)}>
-                <span className="g-emoji" aria-hidden="true">🛒</span>
-                <span className="who"><b>{o.title}</b><span>{t.orderFilled(filled, o.parties.length)}</span></span>
+                <span className="g-emoji" aria-hidden="true">{outing ? "🏕️" : "🛒"}</span>
+                <span className="who"><b>{o.title}</b><span>{(outing ? t.outingFilled : t.orderFilled)(filled, o.parties.length)}</span></span>
               </button>
             );
           })}
@@ -161,13 +170,10 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit, onOrde
 
       <div className="sticky-foot group-foot">
         {!alone && (
-          <button className="btn big outline" disabled={starting} onClick={async () => {
-            setStarting(true);
-            try {
-              const o = await backend.createOrder(g, t.orderTitle(new Date().toLocaleDateString("ar-JO", { weekday: "long" })));
-              onOrder(o.id);
-            } catch { toast(t.tryAgain); setStarting(false); }
-          }}>🛒 {t.newOrder}</button>
+          <>
+            <button className="btn big outline" disabled={starting} onClick={() => start()}>🛒 {t.newOrder}</button>
+            <button className="btn big outline" disabled={starting} onClick={() => start("outing")}>🏕️ {t.newOuting}</button>
+          </>
         )}
         <button className="btn big warm" onClick={onSplit} disabled={alone}><Receipt />{alone ? t.addSomeoneFirst : t.splitInGroup}</button>
       </div>

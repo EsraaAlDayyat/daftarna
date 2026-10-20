@@ -12,6 +12,7 @@ import { SplitFlow } from "./SplitFlow";
 import { SettingsSheet } from "./SettingsSheet";
 import { GroupSheet, JoinSheet, NewGroupSheet } from "./GroupSheets";
 import { OrderSheet } from "./OrderSheet";
+import { OutingSheet } from "./OutingSheet";
 import { groupBalance } from "./model";
 import { pendingJoin } from "./invite";
 import { useT } from "./i18n";
@@ -31,7 +32,7 @@ type Tab = "groups" | "friends" | "accounts";
 const TAB_KEY = "daftarna-tab";
 
 export function Home() {
-  const { friends, me, myName, backend, groups } = useApp();
+  const { friends, me, myName, backend, groups, orders } = useApp();
   const t = useT();
   const [open, setOpen] = useState<Open>(() => {
     const j = pendingJoin();
@@ -146,7 +147,8 @@ export function Home() {
           onSplit={() => setOpen({ kind: "split", groupId: open.id, back: open })}
           onOrder={(oid) => setOpen({ kind: "order", id: oid, back: open })} />
       )}
-      {open?.kind === "order" && (
+      {open?.kind === "order" && orders.find((o) => o.id === open.id)?.kind === "outing" && <OutingSheet id={open.id} onClose={back} />}
+      {open?.kind === "order" && orders.find((o) => o.id === open.id)?.kind !== "outing" && (
         <OrderSheet id={open.id} onClose={back}
           onBill={() => setOpen({ kind: "split", orderId: open.id, back: open })} />
       )}

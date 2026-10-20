@@ -148,10 +148,10 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
         return { ...(x as Order), id: d.id, lines: x.lines ?? {}, createdAt: x.createdAt instanceof Timestamp ? x.createdAt.toMillis() : Date.now() };
       })));
     },
-    async createOrder(group, title) {
+    async createOrder(group, title, kind) {
       const m = need();
       const ref = doc(collection(db, "orders"));
-      const data = { groupId: group.id, title, lines: {}, parties: group.members, createdBy: m.phone, status: "open" as const };
+      const data = { groupId: group.id, title, lines: {}, parties: group.members, createdBy: m.phone, status: "open" as const, ...(kind ? { kind } : {}) };
       await setDoc(ref, { ...data, createdAt: serverTimestamp() });
       return { ...data, id: ref.id, createdAt: Date.now() };
     },
