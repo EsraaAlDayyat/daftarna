@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { settlementFor, signedFor } from "../core/ledger";
 import { waReminder } from "../core/messages";
-import { formatJod, jod } from "../core/money";
+import { jod } from "../core/money";
 import { waLink, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Avatar } from "./Avatar";
@@ -147,40 +147,53 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
     return lent ? Math.min(100, Math.round((back / lent) * 100)) : null;
   }, [txns, me]);
 
+  // How much of what each friend came to owe has been paid back (0..1)
+  const progress = (f: Friend) => {
+    let grew = 0, back = 0;
+    const sign = f.balance > 0 ? 1 : -1;
+    for (const x of f.txns) {
+      if (x.kind === "reversal") continue;
+      const v = signedFor(x, me) * sign;
+      if (v > 0) grew += v; else back += -v;
+    }
+    return grew ? Math.min(1, back / grew) : 0;
+  };
+  const both = inSum + outSum;
+
   const part = (key: "in" | "out", list: Friend[], total: number) => {
     const isOpen = openPart === key;
     const isIn = key === "in";
+    if (!list.length) return null;
     return (
-      <div className={`acc ${key}`}>
-        <div className="acc-top">
-          <span className="ic"><Arrow dir={isIn ? "down-left" : "up-right"} /></span>
+      <section className={`acc ocard ${key}`}>
+        <button className="acc-more" aria-expanded={isOpen} onClick={() => setOpenPart(isOpen ? null : key)}>
+          <span className="sq"><Arrow dir={isIn ? "down-left" : "up-right"} /></span>
           <span className="who">
             <b>{isIn ? t.owedToMe : t.iOwe}</b>
-            <span>{list.length ? (isIn ? t.waitingFrom(list.length) : t.toPay(list.length)) : t.nobodyHere}</span>
+            <span>{isIn ? t.waitingFrom(list.length) : t.toPay(list.length)}</span>
           </span>
-          <span className="acc-sum num">{formatJod(total)} <small>{t.jod}</small></span>
-        </div>
-        {list.length > 0 && (
-          <button className="acc-more" aria-expanded={isOpen} onClick={() => setOpenPart(isOpen ? null : key)}>
-            <span className="avatars">
-              {list.slice(0, 3).map((f) => <Avatar key={f.phone} name={f.name} id={f.phone} size={34} />)}
-            </span>
-            <span>{isOpen ? t.hideDetails : isIn ? t.detailsPerPerson : t.detailsAndPay}</span>
-            <span aria-hidden="true">{isOpen ? "˄" : "‹"}</span>
-          </button>
-        )}
-        {isOpen && list.length > 0 && (
-          <div className="list">
-            {list.map((f) => (
-              <button key={f.phone} className="row" onClick={() => onFriend(f.phone)}>
-                <Avatar name={f.name} id={f.phone} />
-                <span className="who"><b>{f.name}</b><span>{f.txns[0]?.note || t.entry}</span></span>
-                <span className={`bal num ${isIn ? "pos" : "neg"}`}>{jod(Math.abs(f.balance))}</span>
-              </button>
-            ))}
+          <span className="acc-sum num">{jod(total)}</span>
+          <span className="chev" aria-hidden="true">{isOpen ? "˄" : "˅"}</span>
+        </button>
+        {isOpen && (
+          <div className="olist">
+            {list.map((f) => {
+              const pr = progress(f);
+              return (
+                <button key={f.phone} className="row orow" onClick={() => onFriend(f.phone)}>
+                  <Avatar name={f.name} id={f.phone} size={40} />
+                  <span className="who">
+                    <b>{f.name}</b>
+                    {pr > 0 && <span className="bar" aria-hidden="true"><i style={{ width: `${Math.round(pr * 100)}%` }} /></span>}
+                    <span className="sub">{pr > 0 ? t.paidPct(Math.round(pr * 100)) : f.txns[0]?.note || t.entry}</span>
+                  </span>
+                  <span className={`bal num ${isIn ? "pos" : "neg"}`}>{jod(Math.abs(f.balance))}</span>
+                </button>
+              );
+            })}
           </div>
         )}
-      </div>
+      </section>
     );
   };
 
@@ -188,38 +201,47 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
     <>
       <LatestBill />
 
-      <div className="net-card">
-        <div className="net-head">
-          <span className="muted">{t.netTitle}</span>
-          {friends.length > 0 && (
-            <span className={`status ${net >= 0 ? "pos" : "neg"}`}>● {net >= 0 ? t.statusGood : t.statusOwe}</span>
-          )}
+      <section className="ocard hero">
+        <div className={`status-line ${net > 0 ? "pos" : net < 0 ? "neg" : ""}`}>
+          <span className="i" aria-hidden="true">i</span>
+          <b>{net > 0 ? t.heroGet(jod(net)) : net < 0 ? t.heroOwe(jod(-net)) : t.netZero}</b>
         </div>
-        <div className={`net-big num ${net > 0 ? "" : net < 0 ? "neg" : ""}`}>{net > 0 ? "+" : net < 0 ? "−" : ""}{formatJod(Math.abs(net))} <small>{t.jod}</small></div>
-        <p>{net > 0 ? t.netMore(jod(net)) : net < 0 ? t.netLess(jod(-net)) : t.netZero}</p>
-        {rate !== null && (
-          <div className="rate"><Trend dir="up" /><span>{t.collectRate(rate)}</span></div>
-        )}
-      </div>
+        <div className="split2">
+          <div className="cell">
+            <span className="sq pos"><Arrow dir="down-left" /></span>
+            <span className="lbl">{t.owedToMe}</span>
+            <b className="num pos">{jod(inSum)}</b>
+            <span className="bar" aria-hidden="true"><i className="pos" style={{ width: both ? `${(inSum / both) * 100}%` : "0%" }} /></span>
+          </div>
+          <div className="cell">
+            <span className="sq neg"><Arrow dir="up-right" /></span>
+            <span className="lbl">{t.iOwe}</span>
+            <b className="num neg">{jod(outSum)}</b>
+            <span className="bar" aria-hidden="true"><i className="neg" style={{ width: both ? `${(outSum / both) * 100}%` : "0%" }} /></span>
+          </div>
+        </div>
+      </section>
 
-      {part("in", theyOwe, inSum)}
-      {part("out", iOwe, outSum)}
+      {rate !== null && rate > 0 && (
+        <div className="ocard line-card">
+          <span className="sq"><Trend dir="up" /></span>
+          <span className="who">{t.collectRate(rate)}</span>
+          <span className="pill-o num">{rate.toLocaleString("ar-JO")}٪</span>
+        </div>
+      )}
 
       <button className="btn big block new-debt" onClick={() => setNewDebt(true)}><Plus />{t.newDebtWith}</button>
-
       {(theyOwe.length > 0 || iOwe.length > 0) && (
         <div className="pay-row">
-          <button className="btn big paid" onClick={() => setPick(true)}><Wallet />{t.recordPayment}</button>
+          <button className="btn big outline" onClick={() => setPick(true)}><Wallet />{t.recordPayment}</button>
           <ShareSummary theyOwe={theyOwe} iOwe={iOwe} />
         </div>
       )}
 
-      {(theyOwe.length > 0 || iOwe.length > 0) && <QuickSettle theyOwe={theyOwe} iOwe={iOwe} />}
+      {part("in", theyOwe, inSum)}
+      {part("out", iOwe, outSum)}
 
-      <div className="tip-card soft">
-        <span className="ic"><Handshake /></span>
-        <span className="who"><b>{t.friendshipTitle}</b><span className="muted">{t.friendshipText}</span></span>
-      </div>
+      {(theyOwe.length > 0 || iOwe.length > 0) && <QuickSettle theyOwe={theyOwe} iOwe={iOwe} />}
 
       {newDebt && (
         <NewDebtSheet friends={friends} onClose={() => setNewDebt(false)}
@@ -355,6 +377,7 @@ function QuickSettle({ theyOwe, iOwe }: { theyOwe: Friend[]; iOwe: Friend[] }) {
   const { backend, me, myName, toast } = useApp();
   const [armed, setArmed] = useState<Phone | null>(null);
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
 
   async function settle(f: Friend) {
     if (armed !== f.phone) { setArmed(f.phone); return; }
@@ -383,14 +406,19 @@ function QuickSettle({ theyOwe, iOwe }: { theyOwe: Friend[]; iOwe: Friend[] }) {
   };
 
   return (
-    <section className="qs-card">
-      <div className="section-h">
-        <h3>{t.qsTitle}</h3>
-        <span className="status">{t.qsCount(theyOwe.length + iOwe.length)}</span>
-      </div>
-      <p className="muted" style={{ margin: 0 }}>{t.qsHint}</p>
-      {theyOwe.map(row)}
-      {iOwe.map(row)}
+    <section className="ocard qs-card">
+      <button className="acc-more" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span className="sq"><Handshake /></span>
+        <span className="who"><b>{t.qsTitle}</b><span>{t.qsCount(theyOwe.length + iOwe.length)}</span></span>
+        <span className="chev" aria-hidden="true">{open ? "˄" : "˅"}</span>
+      </button>
+      {open && (
+        <>
+          <p className="muted" style={{ margin: 0 }}>{t.qsHint}</p>
+          {theyOwe.map(row)}
+          {iOwe.map(row)}
+        </>
+      )}
     </section>
   );
 }
