@@ -3,11 +3,11 @@ import { useMemo, useState } from "react";
 import { settlementFor, signedFor } from "../core/ledger";
 import { waReminder } from "../core/messages";
 import { jod } from "../core/money";
-import { waLink, type Phone } from "../core/phone";
+import { displayPhone, waLink, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
-import { Arrow, Chat, Contacts, Dialpad, Handshake, Plus, Search, Share, Trend, Wallet } from "./icons";
+import { Arrow, Contacts, Dialpad, Handshake, Plus, Search, Share, Trend, Wallet } from "./icons";
 import type { Friend } from "./model";
 import { canPickContacts, pickContacts } from "./contacts";
 import { useDialect } from "./i18n";
@@ -16,17 +16,14 @@ import { useDialect } from "./i18n";
 
 export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; onFriend: (p: Phone) => void; onAdd: () => void }) {
   const { t } = useDialect();
-  const { backend, me, toast, comments } = useApp();
+  const { backend, me, toast, contacts } = useApp();
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
-  const [remind, setRemind] = useState(false);
   const query = q.trim();
   const digits = query.replace(/\D/g, "");
   const shown = friends
     .filter((f) => !query || f.name.includes(query) || (digits && f.phone.includes(digits)))
     .sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  const owedToMe = friends.reduce((s, f) => s + Math.max(0, f.balance), 0);
-  const iOwe = friends.reduce((s, f) => s + Math.max(0, -f.balance), 0);
 
   async function fromContacts() {
     setBusy(true);
@@ -44,22 +41,6 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
     <section aria-label={t.tabFriends} className="stack">
       <button className="btn add-small add-friend" onClick={onAdd}><Plus />{t.addFriendBtn}</button>
 
-      {friends.length > 0 && (
-        <section className="ocard totals">
-          <div className="split2">
-            <div className="cell">
-              <span className="sq pos"><Arrow dir="down-left" /></span>
-              <span className="lbl">{t.youGet}</span>
-              <b className="num pos">{jod(owedToMe)}</b>
-            </div>
-            <div className="cell">
-              <span className="sq neg"><Arrow dir="up-right" /></span>
-              <span className="lbl">{t.youOwe}</span>
-              <b className="num neg">{jod(iOwe)}</b>
-            </div>
-          </div>
-        </section>
-      )}
 
       {friends.length > 5 && (
         <label className="searchbar">
@@ -79,18 +60,15 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
         ) : !shown.length ? (
           <div className="empty">{t.noMatch(q)}</div>
         ) : shown.map((f) => {
-          const n = comments.filter((c) => f.txns.some((x) => x.id === c.txnId)).length;
-          const cls = f.balance > 0 ? "pos" : f.balance < 0 ? "neg" : "zero";
+          const cliq = contacts.find((c) => c.phone === f.phone)?.cliq;
           return (
             <button key={f.phone} className="frow soft" onClick={() => onFriend(f.phone)}>
               <Avatar name={f.name} id={f.phone} size={50} />
               <span className="who">
-                <span className="name-line">
-                  <b>{f.name}</b>
-                  {n > 0 && <span className="cchip num"><Chat />{n.toLocaleString("ar-JO")}</span>}
-                </span>
-                <span className={`say ${cls}`}>
-                  {cls === "pos" ? t.friendOwesMe(jod(f.balance)) : cls === "neg" ? t.iOweFriend(jod(-f.balance)) : t.nothingBetween}
+                <b className="cname">{f.name}</b>
+                <span className="cmeta">
+                  <span className="phone-line num" dir="ltr">{displayPhone(f.phone)}</span>
+                  {cliq && <span className="cliq-mini" dir="ltr"><i>CliQ</i>{cliq}</span>}
                 </span>
               </span>
               <span className="chev" aria-hidden="true">‹</span>
@@ -99,10 +77,6 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
         })}
       </div>
 
-      {friends.some((f) => f.balance > 0) && (
-        <button className="link-btn remind-link" onClick={() => setRemind(true)}>📣 {t.remindAll}</button>
-      )}
-      {remind && <RemindSheet friends={friends.filter((f) => f.balance > 0)} onClose={() => setRemind(false)} />}
     </section>
   );
 }
@@ -139,6 +113,7 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
   const { txns, me } = useApp();
   const [pick, setPick] = useState(false);
   const [newDebt, setNewDebt] = useState(false);
+  const [remind, setRemind] = useState(false);
   const theyOwe = friends.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
   const iOwe = friends.filter((f) => f.balance < 0).sort((a, b) => a.balance - b.balance);
   const sum = (l: Friend[]) => l.reduce((s, f) => s + Math.abs(f.balance), 0);
@@ -245,6 +220,7 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
       )}
 
       {part("in", theyOwe, inSum)}
+      {theyOwe.length > 0 && <button className="link-btn remind-link" onClick={() => setRemind(true)}>📣 {t.remindAll}</button>}
       {part("out", iOwe, outSum)}
 
       {(theyOwe.length > 0 || iOwe.length > 0) && <QuickSettle theyOwe={theyOwe} iOwe={iOwe} />}
@@ -254,6 +230,7 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
           onPick={(p) => { setNewDebt(false); onFriend(p); }}
           onAdd={() => { setNewDebt(false); onAdd(); }} />
       )}
+      {remind && <RemindSheet friends={theyOwe} onClose={() => setRemind(false)} />}
       {pick && <PickFriendSheet friends={[...theyOwe, ...iOwe]} onClose={() => setPick(false)} onPick={(p) => { setPick(false); onFriend(p); }} />}
     </>
   );

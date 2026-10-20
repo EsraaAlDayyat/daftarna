@@ -112,8 +112,8 @@ for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3
 }
 await sara.getByRole("button", { name: "إغلاق" }).click();
 await shot(sara, "home-two-friends");
-const friendRow = await text(sara, ".frow:has-text('أحمد') .say");
-check(friendRow.includes("١٠ د.أ") && friendRow.includes("لك عنده"), "friends tab shows Ahmad owes me 10", `row: ${friendRow}`);
+const friendRow = await text(sara, ".frow:has-text('أحمد') .cmeta");
+check(friendRow.includes("078 222 2222"), "contacts list shows Ahmad's number", `row: ${friendRow}`);
 check((await sara.locator(".frow:has-text('لينا')").count()) === 1, "friends tab lists Lina too");
 await tab(sara, /ملخص الحساب/);
 const ahmadRow = await text(sara, ".acc.in .row:has-text('أحمد') .bal");

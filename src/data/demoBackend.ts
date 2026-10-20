@@ -207,8 +207,8 @@ export function seedDemo(backendMe: Phone, myName: string) {
   store.users[LINA] = "لينا";
   store.users[backendMe] = myName;
   store.contacts[backendMe] = [
-    { phone: AHMAD, name: "أحمد" },
-    { phone: LINA, name: "لينا" },
+    { phone: AHMAD, name: "أحمد", cliq: "AHMAD22" },
+    { phone: LINA, name: "لينا", cliq: "0773333333" },
     { phone: OMAR, name: "عمر" },
   ];
   store.contacts[AHMAD] = [{ phone: backendMe, name: myName }];
