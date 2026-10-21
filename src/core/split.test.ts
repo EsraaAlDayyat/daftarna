@@ -39,16 +39,38 @@ describe("splitBill", () => {
     expect(r.shares.sara).toBe(7656);  // 6 × 1.276
   });
 
-  it("delivery and discount are proportional too", () => {
+  it("discount is proportional; delivery is split equally", () => {
     const r = splitBill({
       items: [item("a", 3000), item("b", 1000)],
       eaters: { a: ["x"], b: ["y"] },
       extras: { tax: 0, service: 0, delivery: 2000, discount: 400 },
       payer: "x",
     });
-    // Total 5.600; y ordered a quarter
-    expect(r.shares.y).toBe(1400);
-    expect(r.shares.x).toBe(4200);
+    // Without delivery 3.600, y ordered a quarter: 0.900, plus half the delivery: 1.000
+    expect(r.shares.y).toBe(1900);
+    expect(r.shares.x).toBe(3700);
+  });
+
+  it("delivery 3 among 3 people is 1 each", () => {
+    const r = splitBill({
+      items: [item("shawarma", 2000), item("chicken", 5000), item("burger", 3000)],
+      eaters: { shawarma: ["a"], chicken: ["b"], burger: ["c"] },
+      extras: { tax: 0, service: 0, delivery: 3000, discount: 0 },
+      payer: "a",
+    });
+    expect(r.shares).toEqual({ a: 3000, b: 6000, c: 4000 });
+  });
+
+  it("delivery skips a payer who didn't eat", () => {
+    const r = splitBill({
+      items: [item("x", 4000), item("y", 4000)],
+      eaters: { x: ["b"], y: ["c"] },
+      extras: { tax: 0, service: 0, delivery: 2000, discount: 0 },
+      payer: "a",
+    });
+    expect(r.shares.b).toBe(5000);
+    expect(r.shares.c).toBe(5000);
+    expect(r.shares.a).toBe(0);
   });
 
   it("the rounding remainder goes to the payer", () => {
@@ -121,11 +143,14 @@ describe("splitBill", () => {
         expect(v).toBeGreaterThanOrEqual(0);
         if (p !== payer) {
           // each share is within one fils of the exact value
-          const exact = items.reduce((s, it) => {
+          const mine = items.reduce((s, it) => {
             const w = new Set(eaters[it.id]);
             return s + (w.has(p) ? it.price / w.size : 0);
-          }, 0) * (r.total / r.subtotal);
-          expect(Math.abs(v - exact)).toBeLessThan(1);
+          }, 0);
+          const ate = new Set(Object.values(eaters).flat()).size;
+          const exact = mine * ((r.total - extras.delivery) / r.subtotal) + (mine > 0 ? extras.delivery / ate : 0);
+          // proportional part and delivery part are each rounded down
+          expect(Math.abs(v - exact)).toBeLessThan(2);
         }
       }
     }

@@ -63,7 +63,8 @@ const lcm = (a: bigint, b: bigint): bigint => (a / gcd(a, b)) * b;
 /**
  * Splits a bill:
  * - each item is divided evenly among the people who had it;
- * - tax, service, delivery and discount are allocated in proportion to each person's items.
+ * - tax, service and discount are allocated in proportion to each person's items;
+ * - delivery is a flat fee, so it is split equally among the people who had something.
  * Math is exact (BigInt fractions). Everyone except the payer is rounded down,
  * and the payer takes the remainder, so the shares always sum to the exact total.
  */
@@ -90,6 +91,11 @@ export function splitBill(input: SplitInput): SplitResult {
     for (const p of who) itemsNum.set(p, itemsNum.get(p)! + part);
   }
 
+  // Delivery: equal per person who ate. The rest of the extras: proportional.
+  const ate = [...people].filter((p) => itemsNum.get(p)! > 0n);
+  const deliveryEach = ate.length ? Math.floor(extras.delivery / ate.length) : 0;
+  const propTotal = total - extras.delivery;
+
   const shares: Record<string, Fils> = {};
   const itemsOf: Record<string, Fils> = {};
   let assigned = 0;
@@ -98,11 +104,12 @@ export function splitBill(input: SplitInput): SplitResult {
     itemsOf[p] = Number(num / L);
     if (p === payer) continue;
     // share = items × (total / subtotal)
-    const share = subtotal === 0
+    const prop = subtotal === 0
       ? 0n
-      : (num * BigInt(total)) / (L * BigInt(subtotal)); // floor (values are non-negative)
-    shares[p] = Number(share);
-    assigned += Number(share);
+      : (num * BigInt(propTotal)) / (L * BigInt(subtotal)); // floor (values are non-negative)
+    const share = Number(prop) + (num > 0n ? deliveryEach : 0);
+    shares[p] = share;
+    assigned += share;
   }
   shares[payer] = total - assigned;
   return { subtotal, total, shares, itemsOf };
