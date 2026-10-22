@@ -258,6 +258,14 @@ check((await sara.getByRole("dialog").locator(".orders .row").count()) === 0, "t
 await sara.getByRole("button", { name: "إغلاق" }).click();
 await tab(sara, /ملخص الحساب/);
 await shot(sara, "home-after-split");
+check((await sara.getByRole("button", { name: /تذكير/ }).count()) === 0, "no reminder button on the summary tab");
+await tab(sara, /جهات الاتصال/);
+await sara.getByRole("button", { name: /📣/ }).click();
+check(await sara.getByRole("dialog").getByText("أحمد").first().isVisible(), "reminders live on the contacts tab");
+await shot(sara, "remind");
+await sara.getByRole("button", { name: "إغلاق" }).click();
+await shot(sara, "contacts-tab");
+await tab(sara, /ملخص الحساب/);
 await noHorizontalScroll(sara, "home");
 
 // ───────── Ahmad, in a second tab ─────────

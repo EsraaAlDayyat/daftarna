@@ -20,6 +20,8 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [reach, setReach] = useState<Friend | null>(null);
+  const [remind, setRemind] = useState(false);
+  const theyOwe = friends.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
   const query = q.trim();
   const digits = query.replace(/\D/g, "");
   const shown = friends
@@ -40,7 +42,10 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
 
   return (
     <section aria-label={t.tabFriends} className="stack">
-      <button className="btn add-small add-friend" onClick={onAdd}><Plus />{t.addFriendBtn}</button>
+      <div className="contacts-actions">
+        <button className="btn add-small add-friend" onClick={onAdd}><Plus />{t.addFriendBtn}</button>
+        {theyOwe.length > 0 && <button className="btn add-small remind-btn" onClick={() => setRemind(true)}>📣 {t.remindAll}</button>}
+      </div>
 
 
       {friends.length > 5 && (
@@ -86,6 +91,7 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
       </div>
 
       {reach && <ReachSheet friend={reach} onClose={() => setReach(null)} />}
+      {remind && <RemindSheet friends={theyOwe} onClose={() => setRemind(false)} />}
     </section>
   );
 }
@@ -138,7 +144,6 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
   const { txns, me } = useApp();
   const [pick, setPick] = useState(false);
   const [newDebt, setNewDebt] = useState(false);
-  const [remind, setRemind] = useState(false);
   const theyOwe = friends.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
   const iOwe = friends.filter((f) => f.balance < 0).sort((a, b) => a.balance - b.balance);
   const sum = (l: Friend[]) => l.reduce((s, f) => s + Math.abs(f.balance), 0);
@@ -245,7 +250,6 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
       )}
 
       {part("in", theyOwe, inSum)}
-      {theyOwe.length > 0 && <button className="link-btn remind-link" onClick={() => setRemind(true)}>📣 {t.remindAll}</button>}
       {part("out", iOwe, outSum)}
 
       {(theyOwe.length > 0 || iOwe.length > 0) && <QuickSettle theyOwe={theyOwe} iOwe={iOwe} />}
@@ -255,7 +259,6 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
           onPick={(p) => { setNewDebt(false); onFriend(p); }}
           onAdd={() => { setNewDebt(false); onAdd(); }} />
       )}
-      {remind && <RemindSheet friends={theyOwe} onClose={() => setRemind(false)} />}
       {pick && <PickFriendSheet friends={[...theyOwe, ...iOwe]} onClose={() => setPick(false)} onPick={(p) => { setPick(false); onFriend(p); }} />}
     </>
   );
