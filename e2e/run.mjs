@@ -295,7 +295,7 @@ await ahmad.getByRole("button", { name: "إرسال", exact: true }).click();
 await ahmad.locator(".bubble.mine", { hasText: "أكيد" }).waitFor();
 await ahmad.getByRole("button", { name: /تسوية الحساب/ }).click();
 await ahmad.getByRole("button", { name: "نعم، سوِّ الحساب" }).click();
-await ahmad.getByText(/لا يوجد رصيد بيننا الآن/).first().waitFor();
+await ahmad.locator(".big-bal .amt.zero").waitFor();
 await shot(ahmad, "ahmad-settled");
 
 await sara.bringToFront();

@@ -69,7 +69,8 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
     try {
       const [t] = await backend.addTxns([manualTxn(action, me, phone, fils, note.trim(), myName)]);
       setAmount(""); setNote("");
-      setPanel({ kind: "sent", txn: t });
+      // Only ask in-page when the setting says "ask"; otherwise the message already opened
+      if (reg !== true && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: t });
       tellThem(t);
       toast(s.recorded);
     } catch { setErr(s.saveFailed); }
@@ -82,7 +83,8 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
     setBusy(true);
     try {
       const [t] = await backend.addTxns([st]);
-      setPanel({ kind: "sent", txn: t });
+      // Only ask in-page when the setting says "ask"; otherwise the message already opened
+      if (reg !== true && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: t });
       tellThem(t);
       toast(s.nowSettled);
     } catch { toast(s.saveFailed); }
@@ -93,7 +95,8 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
     setBusy(true);
     try {
       const [r] = await backend.addTxns([reversalOf(t, me, myName)]);
-      setPanel({ kind: "sent", txn: r });
+      // Only ask in-page when the setting says "ask"; otherwise the message already opened
+      if (reg !== true && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: r });
       tellThem(r);
       toast(s.cancelled);
     } catch { toast(s.tryAgain); }
@@ -133,6 +136,9 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         <button className="link-btn" onClick={() => { setNewName(f.name); setPanel({ kind: "rename" }); }}>
           {f.saved ? s.rename : s.saveFriend}
         </button>
+        {!cliq && panel?.kind !== "cliq" && (
+          <button className="link-btn" onClick={() => { setCliqIn(""); setPanel({ kind: "cliq" }); }}>+ CliQ</button>
+        )}
       </div>
 
       {panel?.kind === "rename" && (
@@ -163,11 +169,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
           <button className="btn small" onClick={copyCliq}>{s.copy}</button>
           <button className="icon-btn" onClick={() => { setCliqIn(cliq); setPanel({ kind: "cliq" }); }} aria-label={s.editCliq}><Pencil /></button>
         </div>
-      ) : (
-        <button className="cliq-add" onClick={() => { setCliqIn(""); setPanel({ kind: "cliq" }); }}>
-          <span className="cliq-logo" aria-hidden="true">CliQ</span>{s.addCliq(f.name)}
-        </button>
-      )}
+      ) : null}
 
       {panel?.kind === "sent" && (
         <div className="notice">
