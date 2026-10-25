@@ -22,8 +22,12 @@ const browser = await chromium.launch({
 const ctx = await browser.newContext({
   viewport: { width: W, height: H + BAND }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: "ar-JO",
 });
-// Show the ready message in the app instead of leaving it for the SMS app
-await ctx.addInitScript(() => { try { localStorage.setItem("daftarna-notify-via", "ask"); } catch { /* */ } });
+// Same as a real phone: after each entry the SMS app opens with the message ready.
+// Chromium can't open sms: links, so the video shows a mock of that screen instead.
+await ctx.addInitScript(() => { try { localStorage.setItem("daftarna-notify-via", "sms"); } catch { /* */ }
+  // Keep the message for the SMS mock instead of leaving the app
+  window.__daftarnaOpenSms = (_url, msg) => { top.__lastSms = msg; };
+});
 
 const p = await ctx.newPage();
 const wait = (ms) => p.waitForTimeout(ms);
@@ -61,6 +65,16 @@ await p.addInitScript(() => {
     .tut-dot { position: fixed; z-index: 2147483647; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
       background: rgba(31,92,71,.35); border: 3px solid rgba(31,92,71,.85); pointer-events: none;
       animation: tut-pop .6s ease-out forwards; }
+    #tut-sms { position: fixed; top: 0; left: 0; width: 390px; height: 844px; z-index: 2147483646; background: #fff; direction: rtl;
+      font-family: system-ui, "IBM Plex Sans Arabic", sans-serif; display: flex; flex-direction: column;
+      transform: translateY(100%); transition: transform .35s ease; }
+    #tut-sms.on { transform: none; }
+    #tut-sms .hd { padding: 46px 20px 14px; text-align: center; border-bottom: 1px solid #eee; }
+    #tut-sms .hd b { display: block; font-size: 20px; } #tut-sms .hd span { color: #888; font-size: 13px; }
+    #tut-sms .bub { margin: auto 14px 14px; align-self: flex-end; max-width: 290px; background: #2f7cf6; color: #fff; border-radius: 20px 20px 6px 20px;
+      padding: 12px 14px; font-size: 15.5px; line-height: 1.6; word-break: break-word; }
+    #tut-sms .bar { display: flex; align-items: center; gap: 10px; margin: 0 12px 26px; padding: 10px 16px; border-radius: 24px; background: #f1f1f4; color: #999; }
+    #tut-sms .bar span { flex: 1; } #tut-sms .bar i { font-style: normal; color: #2f7cf6; font-size: 20px; }
     @keyframes tut-pop { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }`;
   addEventListener("DOMContentLoaded", () => {
     const s = document.createElement("style");
@@ -86,6 +100,17 @@ async function card(title, sub, ms) {
   }, [title, sub]);
   await wait(ms);
   await p.evaluate(() => { const el = document.getElementById("tut-card"); el.style.opacity = "0"; setTimeout(() => el.remove(), 450); });
+  await wait(450);
+}
+async function smsMock(to, html, ms) {
+  await p.evaluate(([to, html]) => {
+    const el = document.createElement("div"); el.id = "tut-sms";
+    el.innerHTML = `<div class="hd"><b>${to}</b><span>رسالة نصية</span></div><div class="bub">${html}</div><div class="bar"><span>رسالة نصية</span><i>➤</i></div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("on"));
+  }, [to, html]);
+  await wait(ms);
+  await p.evaluate(() => { const el = document.getElementById("tut-sms"); el.classList.remove("on"); setTimeout(() => el.remove(), 400); });
   await wait(450);
 }
 async function tap(loc, pause = 500) {
@@ -136,6 +161,7 @@ await tap(a.getByRole("button", { name: "ابدأ الآن" }), 1200);
 await caption("٢. أضف أصحابك", "من جهات الاتصال في هاتفك أو بكتابة الرقم");
 await tab(/جهات الاتصال/);
 for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "0773333333"]]) {
+  if (name === "لينا") await caption("وأضف بقية أصحابك بالطريقة نفسها", "");
   await tap(a.getByRole("button", { name: "إضافة صديق" }), 700);
   await type(a.getByLabel("الاسم", { exact: true }), name);
   await type(a.getByLabel("رقم الهاتف", { exact: true }), phone);
@@ -148,14 +174,17 @@ for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077333333
   await type(a.getByLabel("المبلغ (د.أ)"), "10");
   await type(a.getByLabel("البيان"), "تكسي");
   await tap(a.getByRole("button", { name: "تسجيل", exact: true }), 900);
-  await caption("تُجهَّز له رسالة تلقائيًا", "يعرف أحمد بالدين برسالة SMS أو واتساب، حتى لو لم يكن لديه التطبيق");
-  await wait(3200);
-  await tap(a.getByRole("button", { name: "حسنًا" }), 500);
+  await caption("تنفتح رسالة SMS جاهزة تلقائيًا", "فيعرف أحمد بالدين حتى لو لم يكن لديه التطبيق");
+  const sms = await p.evaluate(() => window.__lastSms ?? "");
+  await smsMock("أحمد", sms.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>"), 4200);
   await tap(a.getByRole("button", { name: "إغلاق" }), 700);
 }
 await tap(a.getByRole("button", { name: "إغلاق" }), 700);
-await caption("رقم كل صديق وCliQ الخاص به في مكان واحد", "اضغط على الرقم للاتصال أو المراسلة");
-await wait(2600);
+await caption("رقم كل صديق في مكان واحد", "اضغط على الرقم للاتصال أو المراسلة");
+await wait(2400);
+await caption("📣 تذكير المدينين", "رسالة تذكير لكل من عليه مبلغ، بلطف ودون إحراج");
+await tap(a.getByRole("button", { name: /📣/ }), 2600);
+await tap(a.getByRole("button", { name: "إغلاق" }), 600);
 
 // ───────── 4. Summary ─────────
 await tab(/ملخص الحساب/);

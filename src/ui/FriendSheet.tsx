@@ -57,7 +57,12 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
     const via = getNotifyVia();
     if (via === "ask") return; // the panel offers both
     const msg = waTxnMessage(t, me, f!.name, balanceAfter([...f!.txns, t], me), dialect);
-    if (via === "sms") location.href = smsLink(phone, msg);
+    if (via === "sms") {
+      // A hook for the tutorial recorder, which can't open the SMS app
+      const hook = (window as unknown as { __daftarnaOpenSms?: (url: string, msg: string) => void }).__daftarnaOpenSms;
+      if (hook) hook(smsLink(phone, msg), msg);
+      else location.href = smsLink(phone, msg);
+    }
     else window.open(waLink(phone, msg), "_blank", "noopener");
   }
 
