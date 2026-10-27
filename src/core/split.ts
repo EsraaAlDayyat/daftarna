@@ -114,3 +114,18 @@ export function splitBill(input: SplitInput): SplitResult {
   shares[payer] = total - assigned;
   return { subtotal, total, shares, itemsOf };
 }
+
+const EXTRA_WORDS: [keyof BillExtras, RegExp][] = [
+  ["tax", /ضريب|tax|vat|g\.?s\.?t/i],
+  ["service", /خدم|service|svc/i],
+  ["delivery", /توصيل|delivery/i],
+  ["discount", /خصم|discount/i],
+];
+
+/** Which extra a line really is, when someone wrote tax, service, delivery or a discount as an item. */
+export function extraKindOf(name: string): keyof BillExtras | null {
+  const n = name.trim();
+  if (!n || n.length > 30) return null;
+  for (const [k, re] of EXTRA_WORDS) if (re.test(n)) return k;
+  return null;
+}

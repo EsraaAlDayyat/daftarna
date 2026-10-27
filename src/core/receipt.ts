@@ -1,6 +1,6 @@
 // Receipt-reading schema, prompt, and conversion of the result into items in fils.
 import { parseJod, type Fils } from "./money";
-import type { BillExtras, BillItem } from "./split";
+import { extraKindOf, type BillExtras, type BillItem } from "./split";
 
 /** JSON Schema for the model's structured output (amounts in JOD as numbers). */
 export const RECEIPT_SCHEMA = {
@@ -77,11 +77,20 @@ export function normalizeReceipt(r: RawReceipt, newId: () => string, people: str
       return { id, name: String(it.name ?? "").trim() || "صنف", qty, price };
     })
     .filter((it) => it.price > 0);
+  const read: BillExtras = { tax: f(r.tax), service: f(r.service), delivery: f(r.delivery), discount: f(r.discount) };
+  // If the reader listed tax or service as an item anyway, count it once, as an extra
+  const kept = items.filter((it) => {
+    const k = extraKindOf(it.name);
+    if (!k) return true;
+    if (!read[k]) read[k] = it.price;
+    delete who[it.id];
+    return false;
+  });
   return {
     who,
     restaurant: String(r.restaurant ?? "").trim(),
-    items,
-    extras: { tax: f(r.tax), service: f(r.service), delivery: f(r.delivery), discount: f(r.discount) },
+    items: kept,
+    extras: read,
     printedTotal: f(r.total),
   };
 }

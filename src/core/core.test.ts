@@ -132,6 +132,20 @@ describe("receipt normalization", () => {
     expect(r.extras).toEqual({ tax: 1628, service: 925, delivery: 0, discount: 0 });
     expect(r.printedTotal).toBe(11803);
   });
+
+  it("moves a tax line read as an item into the extras, counted once", () => {
+    let i = 0;
+    const r = normalizeReceipt({
+      readable: true, restaurant: "", currency: "JOD",
+      items: [
+        { name: "برغر", qty: 1, unit_price: 5, line_total: 5 },
+        { name: "ضريبة مبيعات 16%", qty: 1, unit_price: 0.8, line_total: 0.8 },
+      ],
+      subtotal: 5, tax: 0, service: 0, delivery: 0, discount: 0, total: 5.8,
+    }, () => `x${i++}`);
+    expect(r.items.map((x) => x.name)).toEqual(["برغر"]);
+    expect(r.extras.tax).toBe(800);
+  });
 });
 
 describe("comment notifications", () => {

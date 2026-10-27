@@ -5,7 +5,7 @@ import { filsToInput, jod, parseJod, type Fils } from "../core/money";
 import { normalizePhone, smsLink, waLink, type Phone } from "../core/phone";
 import { getNotifyVia } from "./notifyPref";
 import { normalizeReceipt } from "../core/receipt";
-import { billTotal, splitBill, validateSplit, type BillExtras, type BillItem } from "../core/split";
+import { billTotal, extraKindOf, splitBill, validateSplit, type BillExtras, type BillItem } from "../core/split";
 import { useApp } from "./AppContext";
 import { Sheet } from "./Sheet";
 import { Avatar } from "./Avatar";
@@ -112,6 +112,20 @@ export function SplitFlow({ onClose, onDone, groupId, orderId }: {
     setExtras((e) => ({ ...e, [k]: filsToInput(Math.round((base * p) / 100)) }));
   };
   function itemsNext() {
+    // "ضريبة" or "خدمة" typed as an item: it belongs to everyone, so move it to the extras
+    const asExtra = items.filter((i) => extraKindOf(i.name) && (parseJod(i.price) ?? 0) > 0);
+    if (asExtra.length && items.length > asExtra.length) {
+      const ex = { ...extras };
+      for (const i of asExtra) {
+        const k = extraKindOf(i.name)!;
+        ex[k] = filsToInput((parseJod(ex[k]) ?? 0) + (parseJod(i.price) ?? 0));
+      }
+      setExtras(ex);
+      setItems((it) => it.filter((i) => !asExtra.includes(i)));
+      setErr("");
+      toast(t.movedToExtras);
+      return; // let them see it, then press next again
+    }
     const bad = items.filter((i) => (i.name.trim() || i.price.trim()) && !((parseJod(i.price) ?? 0) > 0));
     if (!validItems.length) { setErr(t.needOneItem); return; }
     if (bad.length) { setErr(t.badPrice); return; }

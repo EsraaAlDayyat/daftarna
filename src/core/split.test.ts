@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitBill, validateSplit, emptyExtras, type BillItem, type SplitInput } from "./split";
+import { extraKindOf, splitBill, validateSplit, emptyExtras, type BillItem, type SplitInput } from "./split";
 
 const item = (id: string, price: number, name = id): BillItem => ({ id, name, qty: 1, price });
 const sum = (r: Record<string, number>) => Object.values(r).reduce((a, b) => a + b, 0);
@@ -154,5 +154,16 @@ describe("splitBill", () => {
         }
       }
     }
+  });
+});
+
+describe("extra lines written as items", () => {
+  it("recognises tax, service, delivery and discount", () => {
+    expect(extraKindOf("ضريبة 16%")).toBe("tax");
+    expect(extraKindOf("Sales Tax")).toBe("tax");
+    expect(extraKindOf("خدمة")).toBe("service");
+    expect(extraKindOf("توصيل")).toBe("delivery");
+    expect(extraKindOf("خصم")).toBe("discount");
+    expect(extraKindOf("شاورما")).toBeNull();
   });
 });
