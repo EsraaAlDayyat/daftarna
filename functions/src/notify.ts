@@ -14,9 +14,9 @@ function balanceBetween(all: Txn[], recipient: string, other: string): number {
     .reduce((s, x) => s + signedFor(x, recipient), 0);
 }
 
-export function pushPayload(t: Txn, recipient: string, all: Txn[]) {
+export function pushPayload(t: Txn, recipient: string, all: Txn[], otherName?: string) {
   const other = t.creditor === recipient ? t.debtor : t.creditor;
-  const body = notificationText(t, recipient, balanceBetween(all, recipient, other));
+  const body = notificationText(t, recipient, balanceBetween(all, recipient, other), undefined, "jo", otherName);
   return { title: "دفترنا", body, url: "/", tag: `txn-${t.id}` };
 }
 

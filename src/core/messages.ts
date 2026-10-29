@@ -10,17 +10,26 @@ const j = (f: Fils) => `${formatJodLatin(f)} د.أ`;
 export type Dialect = "jo" | "eg";
 
 /** Balance line from the viewer's perspective. */
-function balanceLine(balance: Fils): string {
+function balanceLine(balance: Fils, otherName?: string): string {
   if (balance === 0) return "لا يوجد رصيد بينكما ✓";
+  if (otherName) return balance > 0 ? `لك عند ${otherName} ${j(balance)}` : `عليك لـ${otherName} ${j(-balance)}`;
   return balance > 0 ? `لك عنده ${j(balance)}` : `عليك له ${j(-balance)}`;
 }
 
 /** Describes an entry to the other party (the notification recipient, `viewer`). */
-function describeForOther(t: Txn, viewer: Phone, place: string | undefined): string {
+function describeForOther(t: Txn, viewer: Phone, place: string | undefined, otherName?: string): string {
   const who = t.createdByName || "صديقك";
   const note = t.note ? `، ${t.note}` : "";
   const a = j(t.amount);
   const viewerOwes = t.debtor === viewer;
+  // Someone recorded a share between two other people (e.g. a gift Ahmad paid for): say who the other side is
+  const thirdParty = t.createdBy !== t.creditor && t.createdBy !== t.debtor;
+  if (thirdParty && t.kind === "split") {
+    const other = otherName || "الدافع";
+    return viewerOwes
+      ? `سجّل ${who} عليك ${a} لـ${other}${place ? `، ${place}` : note}`
+      : `سجّل ${who} لك ${a} على ${otherName || "أحد المشاركين"}${place ? `، ${place}` : note}`;
+  }
   switch (t.kind) {
     case "split":
       return viewerOwes
@@ -41,8 +50,8 @@ function describeForOther(t: Txn, viewer: Phone, place: string | undefined): str
 }
 
 /** Full notification text, including the recipient's new balance. */
-export function notificationText(t: Txn, viewer: Phone, balanceAfter: Fils, place?: string, _d: Dialect = "jo"): string {
-  return `${describeForOther(t, viewer, place)}. ${balanceLine(balanceAfter)}`;
+export function notificationText(t: Txn, viewer: Phone, balanceAfter: Fils, place?: string, _d: Dialect = "jo", otherName?: string): string {
+  return `${describeForOther(t, viewer, place, otherName)}. ${balanceLine(balanceAfter, otherName)}`;
 }
 
 /** The app's address, added under every message so the friend can open their account. */

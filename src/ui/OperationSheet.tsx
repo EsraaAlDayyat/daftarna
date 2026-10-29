@@ -58,6 +58,8 @@ export function OperationSheet({ groupId, onClose, onBill, onOuting, onDone }: {
   const nameOf = (p: Phone) => (p === me ? t.meNamed(myName) : friends.find((f) => f.phone === p)?.name ?? g?.names[p] ?? p);
   const shortName = (p: Phone) => (p === me ? t.me : friends.find((f) => f.phone === p)?.name ?? g?.names[p] ?? p);
   const total = parseJod(amount) ?? 0;
+  // Entries are dated by the server when saved, so the date is always today
+  const today = new Date().toLocaleDateString("ar-JO", { day: "numeric", month: "long", year: "numeric" });
   const contributors = members.filter((p) => !(kind === "gift" && recipient?.phone === p));
 
   const op: OperationInput = {
@@ -197,7 +199,7 @@ export function OperationSheet({ groupId, onClose, onBill, onOuting, onDone }: {
               <input id="op-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t.opNotePh} maxLength={80} />
             </div>
           </div>
-          <p className="muted" style={{ margin: 0, fontSize: 14 }}>{t.opInGroup(g.emoji, g.name)}</p>
+          <p className="muted" style={{ margin: 0, fontSize: 14 }}>{t.opInGroup(g.emoji, g.name)} · {t.opDate(today)}</p>
           {kind === "trip" && <button className="link-btn" onClick={onOuting}>{t.opManyPaid}</button>}
           {err && <p className="err">{err}</p>}
           {foot(t.next, detailsNext)}
@@ -297,6 +299,7 @@ export function OperationSheet({ groupId, onClose, onBill, onOuting, onDone }: {
               </div>
             ))}
           </div>
+          <p className="muted" style={{ margin: 0 }}>{t.opDate(today)}</p>
           {kind === "gift" && recipient && <p className="muted" style={{ margin: 0 }}>{t.opGiftFor(recipient.name)}</p>}
           {note.trim() && <p className="muted" style={{ margin: 0 }}>{t.opNote}: {note.trim()}</p>}
           {result.roundingFils > 0 && <p className="note">{t.opRounding(result.roundingFils, result.roundedUp.map(shortName).join("، "))}</p>}

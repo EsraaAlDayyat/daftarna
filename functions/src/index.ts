@@ -90,10 +90,18 @@ export const notifyOnTxn = onDocumentCreated("txns/{id}", async (event) => {
   const d = snap.data();
   const t = { ...d, id: snap.id, createdAt: (d.createdAt as Timestamp | undefined)?.toMillis() ?? Date.now() } as Txn;
 
+  // Recorded by someone outside the pair (a gift or expense someone else paid): name the other side
+  const thirdParty = t.createdBy !== t.creditor && t.createdBy !== t.debtor;
+  const nameOf = async (p: string) => {
+    if (!thirdParty) return undefined;
+    const n = (await db.doc(`phones/${p}`).get()).data()?.name;
+    return typeof n === "string" && n ? n : p.replace(/^\+962/, "0");
+  };
   for (const phone of recipientsOf(t)) {
     const all = (await db.collection("txns").where("parties", "array-contains", phone).get())
       .docs.map((x) => ({ ...x.data(), id: x.id }) as Txn);
-    await pushTo(phone, pushPayload(t, phone, all));
+    const other = t.creditor === phone ? t.debtor : t.creditor;
+    await pushTo(phone, pushPayload(t, phone, all, await nameOf(other)));
   }
 });
 

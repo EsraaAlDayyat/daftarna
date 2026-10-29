@@ -105,6 +105,13 @@ describe("message text", () => {
     const t = mk(manualTxn("hePaidMe", AHMAD, SARA, 10000, "", "أحمد"));
     expect(notificationText(t, SARA, 0)).toBe("سجّل أحمد أنك دفعت عنه 10 د.أ. لا يوجد رصيد بينكما ✓");
   });
+
+  it("names the other side when someone outside the pair recorded the share", () => {
+    const LINA = "+962773333333";
+    const g = makeTxn({ creditor: AHMAD, debtor: SARA, amount: 5000, kind: "split", note: "هدية إلى ليلى", createdBy: LINA, createdByName: "لينا", billId: "b" }, "g1");
+    expect(notificationText(g, SARA, -5000, undefined, "jo", "أحمد")).toBe("سجّل لينا عليك 5 د.أ لـأحمد، هدية إلى ليلى. عليك لـأحمد 5 د.أ");
+    expect(notificationText(g, AHMAD, 5000, undefined, "jo", "سارة")).toBe("سجّل لينا لك 5 د.أ على سارة، هدية إلى ليلى. لك عند سارة 5 د.أ");
+  });
   it("WhatsApp message and statement", () => {
     const t = mk(manualTxn("iLentHim", SARA, AHMAD, 2500, "تكسي", "سارة"));
     expect(waTxnMessage(t, SARA, "أحمد", 2500)).toBe(

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { balancesFor, type Txn } from "./core/ledger";
 import { commentText, notificationText } from "./core/messages";
-import type { Phone } from "./core/phone";
+import { displayPhone, type Phone } from "./core/phone";
 import type { Backend, Contact, Group, Order, TxnComment } from "./data/backend";
 import { createBackend } from "./data";
 import { Ctx, type AppCtx } from "./ui/AppContext";
@@ -32,6 +32,8 @@ export default function App() {
   }), [dialect]);
   const dialectRef = useRef(dialect);
   dialectRef.current = dialect;
+  // Display name for a phone, for notifications about entries between two other people
+  const namesRef = useRef<(p: Phone) => string>((p) => p);
 
   const toast = useCallback((text: string, push = false) => {
     const id = Math.random();
@@ -84,7 +86,8 @@ export default function App() {
           // Skip my own entries, and old ones that just became visible (e.g. sample data)
           if (seen.has(t.id) || t.createdBy === me || Date.now() - t.createdAt > 120_000) continue;
           const other = t.creditor === me ? t.debtor : t.creditor;
-          toast(notificationText(t, me, balancesFor(all, me).get(other) ?? 0, undefined, dialectRef.current), true);
+          const third = t.createdBy !== t.creditor && t.createdBy !== t.debtor;
+          toast(notificationText(t, me, balancesFor(all, me).get(other) ?? 0, undefined, dialectRef.current, third ? namesRef.current(other) : undefined), true);
         }
       }
       // The first snapshot is existing history, not news
@@ -95,6 +98,7 @@ export default function App() {
   }, [backend, me, toast]);
 
   const friends = useMemo(() => (me ? buildFriends(me, contacts, txns, groups) : []), [me, contacts, txns, groups]);
+  namesRef.current = (p) => friends.find((f) => f.phone === p)?.name ?? displayPhone(p);
 
   // Find out who has the app, so WhatsApp can be suggested for everyone else
   const asked = useRef(new Set<Phone>());
