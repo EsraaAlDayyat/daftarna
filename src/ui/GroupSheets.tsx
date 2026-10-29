@@ -5,7 +5,7 @@ import type { Group } from "../data/backend";
 import { useApp } from "./AppContext";
 import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
-import { Receipt, WhatsApp } from "./icons";
+import { Plus, WhatsApp } from "./icons";
 import { groupBalance } from "./model";
 import { clearInvite, inviteLink } from "./invite";
 import { useT } from "./i18n";
@@ -85,8 +85,8 @@ function InviteCard({ group }: { group: Group }) {
   );
 }
 
-export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit, onOrder }: {
-  id: string; onClose: () => void; onFriend: (p: Phone) => void; onAddMember: () => void; onSplit: () => void;
+export function GroupSheet({ id, onClose, onFriend, onAddMember, onOperation, onOrder }: {
+  id: string; onClose: () => void; onFriend: (p: Phone) => void; onAddMember: () => void; onOperation: () => void;
   onOrder: (orderId: string) => void;
 }) {
   const { groups, friends, me, myName, orders, backend, toast } = useApp();
@@ -172,10 +172,9 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onSplit, onOrde
         {!alone && (
           <>
             <button className="btn big outline" disabled={starting} onClick={() => start()}>🛒 {t.newOrder}</button>
-            <button className="btn big outline" disabled={starting} onClick={() => start("outing")}>🏕️ {t.newOuting}</button>
           </>
         )}
-        <button className="btn big warm" onClick={onSplit} disabled={alone}><Receipt />{alone ? t.addSomeoneFirst : t.splitInGroup}</button>
+        <button className="btn big warm" onClick={onOperation} disabled={alone}><Plus />{alone ? t.addSomeoneFirst : t.addOperation}</button>
       </div>
     </Sheet>
   );

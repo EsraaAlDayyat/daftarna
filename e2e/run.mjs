@@ -142,7 +142,10 @@ await shot(sara, "group");
 check((await sara.getByRole("dialog").locator(".row").count()) === 3, "group lists me and the two friends");
 
 // ───────── Split a bill inside the group ─────────
-await sara.getByRole("dialog").getByRole("button", { name: "تقسيم فاتورة" }).click();
+await sara.getByRole("dialog").getByRole("button", { name: "إضافة عملية" }).click();
+await shot(sara, "operation-types");
+check((await sara.locator(".op-type").count()) === 4, "four operation types: bill, gift, trip, shared expense");
+await sara.locator(".op-type", { hasText: "فاتورة" }).click();
 await shot(sara, "split-source");
 await noHorizontalScroll(sara, "split source");
 const onePixelPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
@@ -229,7 +232,9 @@ check((await sara.getByRole("dialog").locator(".orders .row").count()) === 0, "t
 
 // ───────── Outing: everyone writes what they paid, split equally among those who came ─────────
 await shot(sara, "group-foot");
-await sara.getByRole("button", { name: /^🏕️ طلعة$/ }).click();
+await sara.getByRole("button", { name: "إضافة عملية" }).click();
+await sara.locator(".op-type", { hasText: "طلعة أو رحلة" }).click();
+await sara.getByRole("button", { name: /دفع أكثر من شخص/ }).click();
 await sara.getByLabel("اسم الطلعة").fill("مزرعة دبين");
 await sara.getByLabel("اسم الطلعة").blur();
 await sara.getByLabel(/ما دفعه أنا/).fill("40 مزرعة + 20 لحمة");
@@ -255,6 +260,39 @@ await sara.getByRole("button", { name: "عرض ملخص الحساب" }).click()
 await sara.getByRole("dialog", { name: "الشلة" }).waitFor();
 await sara.waitForTimeout(300);
 check((await sara.getByRole("dialog").locator(".orders .row").count()) === 0, "the outing closes once it's calculated");
+
+// ───────── Group gift: one payer, the recipient doesn't contribute ─────────
+await sara.getByRole("button", { name: "إضافة عملية" }).click();
+await sara.locator(".op-type", { hasText: "هدية جماعية" }).click();
+await sara.getByLabel("اسم العملية").fill("عيد ميلاد");
+await sara.getByLabel(/المبلغ الكلي/).fill("10.001");
+await sara.getByRole("button", { name: "التالي", exact: true }).click();
+check(await sara.locator(".pchip[aria-pressed=true]", { hasText: "أنا" }).isVisible(), "I'm the payer by default");
+await sara.getByRole("button", { name: "التالي", exact: true }).click();
+await sara.locator(".pchip", { hasText: "لينا" }).click();
+await sara.getByRole("button", { name: "التالي", exact: true }).click();
+check(await sara.getByRole("button", { name: "التالي", exact: true }).isDisabled(), "nobody is selected until I choose");
+check((await sara.locator(".pchip", { hasText: "لينا" }).count()) === 0, "the gift's recipient isn't offered as a contributor");
+await sara.getByRole("button", { name: "تحديد الكل" }).click();
+await shot(sara, "gift-people");
+await sara.getByRole("button", { name: "التالي", exact: true }).click();
+check(await sara.getByText(/فرق التقريب: ١ فلس/).isVisible(), "shows the 1 fils rounding difference");
+await sara.getByRole("button", { name: /تحديد مبلغ لكل شخص/ }).click();
+await sara.getByLabel("حصة أحمد").fill("4");
+check(await sara.locator(".warn", { hasText: "بقي" }).isVisible(), "custom amounts must add up to the total");
+await sara.getByLabel("حصة أنا").fill("6.001");
+await sara.getByRole("button", { name: "مراجعة العملية" }).click();
+check(/لك ٤ د\.أ/.test(await sara.locator(".my-outing").innerText()), "review shows how my balance changes");
+check(await sara.getByText(/الهدية إلى: لينا/).isVisible(), "review names the recipient");
+await shot(sara, "gift-review");
+await sara.getByRole("button", { name: "حفظ العملية" }).click();
+await sara.getByText("تم تسجيل العملية بنجاح").first().waitFor();
+check((await sara.locator(".share-row").count()) === 1, "only Ahmad owes for the gift");
+check((await sara.locator(".share-row a").first().getAttribute("href")).includes(encodeURIComponent("هدية إلى لينا")), "the message says it's a gift for Lina");
+await sara.getByRole("button", { name: "عرض ملخص الحساب" }).click();
+await sara.getByRole("navigation").waitFor();
+await tab(sara, /مجموعاتي/);
+await sara.locator(".gtile", { hasText: "الشلة" }).click();
 await sara.getByRole("button", { name: "إغلاق" }).click();
 await tab(sara, /ملخص الحساب/);
 await shot(sara, "home-after-split");
@@ -284,7 +322,7 @@ await ahmad.locator(".acc.out .acc-more").click();
 await shot(ahmad, "ahmad-accounts");
 const saraForAhmad = await text(ahmad, ".acc.out .row:has-text('سارة')").catch(() => "");
 check(saraForAhmad.length > 0, "Ahmad sees Sara under 'I owe'", `Ahmad sees: ${saraForAhmad}`);
-check((await ahmad.locator(".acc .row:has-text('لينا')").count()) === 0, "Ahmad sees Lina from the group, but not her entries with Sara");
+check((await ahmad.locator(".acc .row .who b", { hasText: /^لينا$/ }).count()) === 0, "Ahmad sees Lina from the group, but not her entries with Sara");
 
 await ahmad.locator(".row:has-text('سارة')").click();
 await shot(ahmad, "ahmad-friend");

@@ -127,6 +127,20 @@ describe("bills", () => {
     await assertFails(getDoc(doc(as("s", S), "txns/y2")));
   });
 
+  it("operations: a gift or shared expense is a bill with a kind; the same submission can't land twice", async () => {
+    const db = as("s", S);
+    const gift = () => {
+      const b = writeBatch(db);
+      b.set(doc(db, "bills/op1"), bill({ kind: "gift", recipient: "ليلى", restaurant: "عيد ميلاد", shares: { [S]: 5000, [A]: 5000 }, parties: [S, A] }));
+      b.set(doc(db, "txns/op1-0"), split(A, 5000, { billId: "op1" }));
+      return b.commit();
+    };
+    await assertSucceeds(gift());
+    await assertFails(gift()); // a retry with the same ids is an update, which is never allowed
+    await assertFails(setDoc(doc(db, "bills/op2"), bill({ kind: "party" })));
+    await assertFails(setDoc(doc(db, "bills/op3"), bill({ kind: "gift", recipient: 5 })));
+  });
+
   it("cannot reuse another user's bill as cover", async () => {
     await env.withSecurityRulesDisabled(async (c) => {
       await setDoc(doc(c.firestore(), "bills/b9"), { ...bill(), createdAt: new Date() });

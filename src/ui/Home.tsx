@@ -13,6 +13,7 @@ import { SettingsSheet } from "./SettingsSheet";
 import { GroupSheet, JoinSheet, NewGroupSheet } from "./GroupSheets";
 import { OrderSheet } from "./OrderSheet";
 import { OutingSheet } from "./OutingSheet";
+import { OperationSheet } from "./OperationSheet";
 import { groupBalance } from "./model";
 import { pendingJoin } from "./invite";
 import { useT } from "./i18n";
@@ -22,6 +23,7 @@ type Open =
   | { kind: "add"; groupId?: string; back?: Open }
   | { kind: "split"; groupId?: string; orderId?: string; back?: Open }
   | { kind: "order"; id: string; back?: Open }
+  | { kind: "operation"; groupId: string; back?: Open }
   | { kind: "settings" }
   | { kind: "group"; id: string }
   | { kind: "newGroup" }
@@ -32,7 +34,7 @@ type Tab = "groups" | "friends" | "accounts";
 const TAB_KEY = "daftarna-tab";
 
 export function Home() {
-  const { friends, me, myName, backend, groups, orders } = useApp();
+  const { friends, me, myName, backend, groups, orders, toast } = useApp();
   const t = useT();
   const [open, setOpen] = useState<Open>(() => {
     const j = pendingJoin();
@@ -144,8 +146,21 @@ export function Home() {
         <GroupSheet id={open.id} onClose={close}
           onFriend={(p) => setOpen({ kind: "friend", phone: p, back: open })}
           onAddMember={() => setOpen({ kind: "add", groupId: open.id, back: open })}
-          onSplit={() => setOpen({ kind: "split", groupId: open.id, back: open })}
+          onOperation={() => setOpen({ kind: "operation", groupId: open.id, back: open })}
           onOrder={(oid) => setOpen({ kind: "order", id: oid, back: open })} />
+      )}
+      {open?.kind === "operation" && (
+        <OperationSheet groupId={open.groupId} onClose={back}
+          onBill={() => setOpen({ kind: "split", groupId: open.groupId, back: open.back })}
+          onOuting={async () => {
+            const g = groups.find((x) => x.id === open.groupId);
+            if (!g) return;
+            try {
+              const o = await backend.createOrder(g, t.outingTitle(new Date().toLocaleDateString("ar-JO", { weekday: "long" })), "outing");
+              setOpen({ kind: "order", id: o.id, back: open.back });
+            } catch { toast(t.tryAgain); }
+          }}
+          onDone={() => { setOpen(null); setTab("accounts"); }} />
       )}
       {open?.kind === "order" && orders.find((o) => o.id === open.id)?.kind === "outing" && <OutingSheet id={open.id} onClose={back} />}
       {open?.kind === "order" && orders.find((o) => o.id === open.id)?.kind !== "outing" && (

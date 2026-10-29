@@ -125,7 +125,10 @@ service cloud.firestore {
         && request.resource.data.payer in request.resource.data.parties
         && request.resource.data.parties.size() <= 30
         && request.resource.data.total is int
-        && request.resource.data.restaurant is string && request.resource.data.restaurant.size() <= 60;
+        && request.resource.data.restaurant is string && request.resource.data.restaurant.size() <= 60
+        // Operations other than a restaurant bill (gift, trip, shared expense)
+        && (!('kind' in request.resource.data) || request.resource.data.kind in ['gift', 'trip', 'shared'])
+        && (!('recipient' in request.resource.data) || (request.resource.data.recipient is string && request.resource.data.recipient.size() <= 40));
       allow update, delete: if false;
     }
 

@@ -57,7 +57,10 @@ export function waTxnMessage(t: Txn, me: Phone, otherName: string, balanceAfterF
   let line: string;
   switch (t.kind) {
     case "split":
-      line = `حصتك من الفاتورة${what ? ` (${what})` : ""}: ${a}`;
+      // A restaurant bill's note starts with "فاتورة"; other operations (gift, trip…) carry their own name
+      line = !what || what.startsWith("فاتورة")
+        ? `حصتك من الفاتورة${what ? ` (${what})` : ""}: ${a}`
+        : `حصتك من «${what}»: ${a}`;
       break;
     case "settle":
       line = `تمت تسوية الحساب بيننا (${a}) ✅`;

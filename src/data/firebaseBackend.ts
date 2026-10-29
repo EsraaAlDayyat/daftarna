@@ -191,19 +191,19 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
         cb(s.docs.map((d) => toTxn(d.id, d.data({ serverTimestamps: "estimate" }))));
       });
     },
-    async addTxns(news: NewTxn[], bill?: NewBill) {
+    async addTxns(news: NewTxn[], bill?: NewBill, opId?: string) {
       const m = need();
       const batch = writeBatch(db);
       let billId: string | undefined;
       if (bill) {
-        const ref = doc(collection(db, "bills"));
+        const ref = opId ? doc(db, "bills", opId) : doc(collection(db, "bills"));
         billId = ref.id;
         const parties = [...new Set([m.phone, bill.payer, ...Object.keys(bill.shares)])];
         batch.set(ref, { ...bill, createdBy: m.phone, parties, createdAt: serverTimestamp() });
       }
       const made: Txn[] = [];
-      for (const t of news) {
-        const ref = doc(collection(db, "txns"));
+      for (const [i, t] of news.entries()) {
+        const ref = opId ? doc(db, "txns", `${opId}-${i}`) : doc(collection(db, "txns"));
         const full = makeTxn({ ...t, ...(billId ? { billId } : {}) }, ref.id);
         const { id: _id, createdAt: _c, ...data } = full;
         // Firestore rejects undefined fields
@@ -213,7 +213,13 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
         if (full.kind === "reversal" && full.reverses) batch.set(doc(db, "reversals", full.reverses), { by: m.phone });
         made.push(full);
       }
-      await batch.commit();
+      try {
+        await batch.commit();
+      } catch (e) {
+        // Retried after the first attempt went through: the bill is already there
+        if (opId && bill && (await getDoc(doc(db, "bills", opId)).then((d) => d.exists(), () => false))) return made;
+        throw e;
+      }
       return made;
     },
 

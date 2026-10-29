@@ -22,6 +22,10 @@ export interface Bill {
   extras: BillExtras;
   shares: Record<Phone, Fils>;
   total: Fils;
+  /** Set for operations that aren't a restaurant bill (see core/operation.ts). */
+  kind?: "gift" | "trip" | "shared";
+  /** Gifts only: who it's for (a name; not a party to any entry). */
+  recipient?: string;
   createdBy: Phone;
   parties: Phone[];
   createdAt: number;
@@ -108,7 +112,11 @@ export interface Backend {
 
   watchTxns(cb: (t: Txn[]) => void): Unsub;
   /** Writes entries (and optionally their bill) in one atomic batch. */
-  addTxns(txns: NewTxn[], bill?: NewBill): Promise<Txn[]>;
+  /**
+   * `opId`: a stable id for this submission. Retrying with the same id after a
+   * network failure doesn't record it twice.
+   */
+  addTxns(txns: NewTxn[], bill?: NewBill, opId?: string): Promise<Txn[]>;
 
   /** `orders`: what each person ordered (short ids), so the reader can say who had each item. */
   readReceipt(image: Blob, orders?: { id: string; text: string }[]): Promise<RawReceipt>;

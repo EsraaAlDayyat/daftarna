@@ -174,12 +174,14 @@ export function createDemoBackend(): Backend {
       // Same privacy rule as the server: only entries I'm a party to
       return sub(() => cb(me ? store.txns.filter((t) => t.parties.includes(me!)) : []));
     },
-    async addTxns(news: NewTxn[], bill?: NewBill) {
+    async addTxns(news: NewTxn[], bill?: NewBill, opId?: string) {
       if (!me) throw new Error("not-signed-in");
+      // Same submission again: it's already recorded
+      if (opId && store.bills.some((b) => b.id === opId)) return store.txns.filter((x) => x.billId === opId);
       const now = Date.now();
       let billId: string | undefined;
       if (bill) {
-        billId = uid();
+        billId = opId ?? uid();
         const parties = [...new Set([me, bill.payer, ...Object.keys(bill.shares)])];
         store.bills.push({ ...bill, id: billId, createdBy: me, parties, createdAt: now });
       }

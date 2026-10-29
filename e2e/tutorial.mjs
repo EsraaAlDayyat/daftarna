@@ -205,7 +205,11 @@ for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077333333
   await tap(a.getByRole("button", { name: "حفظ", exact: true }), 900);
 }
 await caption("٦. قسّم الفاتورة", "صوّر الفاتورة والتطبيق يقرأ الأصناف بنفسه");
-await tap(dialog().getByRole("button", { name: "تقسيم فاتورة" }), 900);
+await tap(dialog().getByRole("button", { name: "إضافة عملية" }), 900);
+await caption("اختر نوع العملية", "فاتورة، هدية جماعية، طلعة أو رحلة، أو مصروف مشترك");
+await wait(2200);
+await tap(a.locator(".op-type", { hasText: "فاتورة" }), 900);
+await caption("٦. قسّم الفاتورة", "صوّر الفاتورة والتطبيق يقرأ الأصناف بنفسه");
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
 await a.locator("input[type=file]").nth(1).setInputFiles({ name: "bill.png", mimeType: "image/png", buffer: png });
 await a.getByRole("heading", { name: "الأصناف" }).waitFor();
@@ -239,7 +243,9 @@ await tap(a.getByRole("button", { name: "عرض ملخص الحساب" }), 1500)
 await caption("٧. طلعة مع الشلة؟", "كل شخص يكتب كم دفع، ويُقسم المجموع بالتساوي");
 await tab(/مجموعاتي/);
 await tap(a.locator(".gtile", { hasText: "الشلة" }), 900);
-await tap(dialog().getByRole("button", { name: /^🏕️ طلعة$/ }), 900);
+await tap(dialog().getByRole("button", { name: "إضافة عملية" }), 800);
+await tap(a.locator(".op-type", { hasText: "طلعة أو رحلة" }), 800);
+await tap(a.getByRole("button", { name: /دفع أكثر من شخص/ }), 900);
 await type(a.getByLabel("اسم الطلعة"), "مزرعة دبين");
 await type(a.getByLabel(/ما دفعه أنا/), "40 مزرعة + 20 لحمة");
 await type(a.getByLabel("ما دفعه أحمد"), "15 بنزين");
