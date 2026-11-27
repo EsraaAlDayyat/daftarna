@@ -155,6 +155,14 @@ describe("bills", () => {
     await assertFails(setDoc(doc(db, "txns/p5"), pay({ pays: "p1" })));                // can't pay a payment
   });
 
+  it("a name-only friend: entries only between them and me", async () => {
+    const db = as("s", S);
+    const L1 = "~abc12345xyz";
+    await assertSucceeds(setDoc(doc(db, "txns/n1"), txn({ creditor: S, debtor: L1, parties: [S, L1], amount: 2000, kind: "lend" })));
+    await assertFails(setDoc(doc(db, "txns/n2"), txn({ creditor: A, debtor: L1, parties: [A, L1], amount: 2000, kind: "lend" })));
+    await assertFails(setDoc(doc(db, "txns/n3"), txn({ creditor: S, debtor: "~BAD", parties: [S, "~BAD"], amount: 2000, kind: "lend" })));
+  });
+
   it("cannot reuse another user's bill as cover", async () => {
     await env.withSecurityRulesDisabled(async (c) => {
       await setDoc(doc(c.firestore(), "bills/b9"), { ...bill(), createdAt: new Date() });

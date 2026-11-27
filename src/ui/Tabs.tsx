@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { paidStates, settlementFor, signedFor, type Txn } from "../core/ledger";
 import { waReminder } from "../core/messages";
 import { jod } from "../core/money";
-import { displayPhone, smsLink, waLink, type Phone } from "../core/phone";
+import { displayPhone, isLocalId, smsLink, waLink, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
@@ -23,7 +23,8 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
   const [busy, setBusy] = useState(false);
   const [reach, setReach] = useState<Friend | null>(null);
   const [remind, setRemind] = useState(false);
-  const theyOwe = friends.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
+  // Reminders need a number to go to
+  const theyOwe = friends.filter((f) => f.balance > 0 && !isLocalId(f.phone)).sort((a, b) => b.balance - a.balance);
   const query = q.trim();
   const digits = query.replace(/\D/g, "");
   const shown = friends
@@ -77,7 +78,9 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
               <span className="who">
                 <b className="cname">{f.name}</b>
                 <span className="cmeta">
-                  <button className="phone-line num" dir="ltr" onClick={() => setReach(f)} aria-label={t.reachOut(f.name)}>{displayPhone(f.phone)}</button>
+                  {isLocalId(f.phone)
+                    ? <span className="muted" style={{ fontSize: 13 }}>{t.nameOnly}</span>
+                    : <button className="phone-line num" dir="ltr" onClick={() => setReach(f)} aria-label={t.reachOut(f.name)}>{displayPhone(f.phone)}</button>}
                   {cliq && (
                     <button className="cliq-mini" dir="ltr" aria-label={t.copyCliqOf(f.name)}
                       onClick={async () => { try { await navigator.clipboard.writeText(cliq); toast(t.cliqCopied); } catch { /* */ } }}>
@@ -444,7 +447,7 @@ function OpenItems({ friends, onFriend }: { friends: Friend[]; onFriend: (p: Pho
   const now = Date.now();
   const days = (x: Txn) => Math.floor((now - x.createdAt) / DAY);
   // People who've owed me for a while (and still owe overall)
-  const late = [...new Map(items.filter((i) => !i.done && i.mine && days(i.t) >= OLD_AFTER_DAYS && i.f.balance > 0).map((i) => [i.f.phone, i.f])).values()];
+  const late = [...new Map(items.filter((i) => !i.done && i.mine && !isLocalId(i.f.phone) && days(i.t) >= OLD_AFTER_DAYS && i.f.balance > 0).map((i) => [i.f.phone, i.f])).values()];
   const shown = all ? items : items.slice(0, 3);
   return (
     <section className="ocard open-items" aria-label={t.openTitle}>

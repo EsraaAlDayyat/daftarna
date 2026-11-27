@@ -325,6 +325,20 @@ check(await sara.getByRole("dialog").getByText("أحمد").first().isVisible(), 
 await shot(sara, "remind");
 await sara.getByRole("button", { name: "إغلاق" }).click();
 await shot(sara, "contacts-tab");
+// A friend with a name only (no phone number)
+await sara.getByRole("button", { name: "إضافة صديق" }).click();
+await sara.getByLabel("الاسم", { exact: true }).fill("خالد");
+await sara.getByRole("button", { name: "حفظ", exact: true }).click();
+await sara.locator(".frow", { hasText: "خالد" }).waitFor();
+check(await sara.locator(".frow", { hasText: "خالد" }).getByText("بدون رقم").isVisible(), "a friend can be added with a name only");
+await sara.locator(".frow", { hasText: "خالد" }).locator(".frow-hit").click({ force: true });
+await sara.getByLabel("المبلغ (د.أ)").fill("3");
+await sara.getByLabel("البيان").fill("قهوة");
+await sara.getByRole("button", { name: "تسجيل", exact: true }).click();
+await sara.locator(".entry", { hasText: "قهوة" }).waitFor();
+check((await sara.getByRole("button", { name: "حسنًا" }).count()) === 0, "no message offer for a name-only friend");
+check((await text(sara, ".big-bal .amt")).includes("٣"), "debts work with a name-only friend");
+await sara.getByRole("button", { name: "إغلاق" }).click();
 await tab(sara, /ملخص الحساب/);
 await noHorizontalScroll(sara, "home");
 

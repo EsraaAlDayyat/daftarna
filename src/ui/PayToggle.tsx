@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { paymentFor, type Txn } from "../core/ledger";
 import { waTxnMessage } from "../core/messages";
-import { smsLink, waLink, type Phone } from "../core/phone";
+import { isLocalId, smsLink, waLink, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { balanceAfter } from "./model";
 import { getNotifyVia } from "./notifyPref";
@@ -9,7 +9,7 @@ import { useDialect } from "./i18n";
 
 /** Tells a friend without the app about a new entry: the SMS or WhatsApp app opens with the words ready. */
 export function tellFriend(t: Txn, phone: Phone, name: string, history: Txn[], me: Phone, reg: boolean | null, dialect: "jo" | "eg") {
-  if (reg === true) return; // they get a notification in the app
+  if (reg === true || isLocalId(phone)) return; // in-app notification, or a name-only friend
   const via = getNotifyVia();
   if (via === "ask") return;
   const msg = waTxnMessage(t, me, name, balanceAfter([...history, t], me), dialect);

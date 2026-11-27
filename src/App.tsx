@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { balancesFor, type Txn } from "./core/ledger";
 import { commentText, notificationText } from "./core/messages";
-import { displayPhone, type Phone } from "./core/phone";
+import { displayPhone, isLocalId, type Phone } from "./core/phone";
 import type { Backend, Contact, Group, Order, TxnComment } from "./data/backend";
 import { createBackend } from "./data";
 import { Ctx, type AppCtx } from "./ui/AppContext";
@@ -107,6 +107,7 @@ export default function App() {
     for (const f of friends) {
       if (asked.current.has(f.phone)) continue;
       asked.current.add(f.phone);
+      if (isLocalId(f.phone)) { setReg((r) => ({ ...r, [f.phone]: false })); continue; } // name only: never on the app
       backend.lookupUser(f.phone)
         .then((u) => setReg((r) => ({ ...r, [f.phone]: !!u })))
         .catch(() => asked.current.delete(f.phone));

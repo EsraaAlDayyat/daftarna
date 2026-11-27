@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { displayPhone, normalizePhone, type Phone } from "../core/phone";
+import { displayPhone, newLocalId, normalizePhone, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Sheet } from "./Sheet";
 import { useT } from "./i18n";
@@ -18,8 +18,10 @@ export function AddFriendSheet({ onClose, onAdded, groupId }: { onClose: () => v
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    const p = normalizePhone(phone);
     if (!name.trim()) { setErr(t.nameMissing); return; }
+    // The number is optional outside groups: a name alone makes a friend kept only on my side
+    const nameOnly = !phone.trim() && !group;
+    const p = nameOnly ? newLocalId() : normalizePhone(phone);
     if (!p) { setErr(t.badPhone); return; }
     if (p === me) { setErr(t.thatsYou); return; }
     const alias = cliq.trim() ? normalizeCliq(cliq) : undefined;
@@ -28,7 +30,7 @@ export function AddFriendSheet({ onClose, onAdded, groupId }: { onClose: () => v
     try {
       await backend.saveContact({ phone: p, name: name.trim(), ...(alias ? { cliq: alias } : {}) });
       if (group) await backend.addGroupMember(group.id, { phone: p, name: name.trim() });
-      const u = await backend.lookupUser(p).catch(() => null);
+      const u = nameOnly ? null : await backend.lookupUser(p).catch(() => null);
       const existed = contacts.some((c) => c.phone === p);
       toast(group ? t.addedToGroup(name.trim()) : existed ? t.nameUpdated : u ? t.addedHasApp(name.trim()) : t.added(name.trim()));
       onAdded(p);
@@ -55,7 +57,10 @@ export function AddFriendSheet({ onClose, onAdded, groupId }: { onClose: () => v
           <input id="fname" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={t.namePhFriend} maxLength={40} />
         </div>
         <div className="full">
-          <label className="l" htmlFor="fphone">{t.phone}</label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <label className="l" htmlFor="fphone">{t.phone}</label>
+            {!group && <small className="muted">{t.optional}</small>}
+          </div>
           <input id="fphone" inputMode="tel" dir="ltr" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="079 123 4567" />
         </div>
         {!group && (
@@ -67,6 +72,7 @@ export function AddFriendSheet({ onClose, onAdded, groupId }: { onClose: () => v
         {err && <p className="err full">{err}</p>}
         <button className="btn big full" disabled={busy}>{t.save}</button>
         <p className="note full">{t.addFriendNote}</p>
+        {!group && <p className="note full">{t.nameOnlyNote}</p>}
       </form>
     </Sheet>
   );

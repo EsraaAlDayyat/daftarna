@@ -11,6 +11,9 @@ service cloud.firestore {
     }
     function me() { return request.auth.token.phone_number; }
     function isPhone(p) { return p is string && p.matches('^[+][1-9][0-9]{7,14}$'); }
+    // A friend added by name only (no phone): known only to the one who added them
+    function isLocal(p) { return p is string && p.matches('^~[a-z0-9]{8,20}$'); }
+    function isParty(p) { return isPhone(p) || isLocal(p); }
     // CliQ alias: optional, short string ("" means none)
     function validCliq(d) {
       return !('cliq' in d) || (d.cliq is string && d.cliq.size() <= 20);
@@ -30,7 +33,7 @@ service cloud.firestore {
       match /contacts/{phone} {
         allow read, delete: if signedIn() && request.auth.uid == uid;
         allow create, update: if signedIn() && request.auth.uid == uid
-          && isPhone(phone)
+          && isParty(phone)
           && request.resource.data.keys().hasOnly(['phone', 'name', 'cliq'])
           && request.resource.data.phone == phone
           && validName(request.resource.data.name)
@@ -77,7 +80,9 @@ service cloud.firestore {
     function validTxn(d) {
       return d.keys().hasAll(['creditor', 'debtor', 'parties', 'amount', 'kind', 'note', 'createdBy', 'createdByName', 'createdAt'])
         && d.keys().hasOnly(['creditor', 'debtor', 'parties', 'amount', 'kind', 'note', 'createdBy', 'createdByName', 'createdAt', 'billId', 'reverses', 'pays'])
-        && isPhone(d.creditor) && isPhone(d.debtor) && d.creditor != d.debtor
+        && isParty(d.creditor) && isParty(d.debtor) && d.creditor != d.debtor
+        // An entry with a name-only friend is always between them and me
+        && (isPhone(d.creditor) || d.debtor == me()) && (isPhone(d.debtor) || d.creditor == me())
         && d.parties == [d.creditor, d.debtor]
         && d.amount is int && d.amount > 0 && d.amount <= 100000000
         && d.note is string && d.note.size() <= 120

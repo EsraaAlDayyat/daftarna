@@ -4,7 +4,7 @@ import {
 } from "../core/ledger";
 import { waReminder, waStatement, waTxnMessage } from "../core/messages";
 import { jod, parseJod } from "../core/money";
-import { displayPhone, smsLink, waLink, type Phone } from "../core/phone";
+import { displayPhone, isLocalId, smsLink, waLink, type Phone } from "../core/phone";
 import { getNotifyVia } from "./notifyPref";
 import { useApp } from "./AppContext";
 import { Sheet } from "./Sheet";
@@ -59,8 +59,9 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
   const cls = f.balance > 0 ? "pos" : f.balance < 0 ? "neg" : "zero";
 
   /** Friends without the app hear about every entry, added or paid back: WhatsApp or SMS opens with the words ready. */
+  const local = isLocalId(phone);
   function tellThem(t: Txn) {
-    if (reg === true) return; // they get a notification in the app
+    if (reg === true || local) return; // in-app notification, or a name-only friend with no number
     const via = getNotifyVia();
     if (via === "ask") return; // the panel offers both
     const msg = waTxnMessage(t, me, f!.name, balanceAfter([...f!.txns, t], me), dialect);
@@ -82,7 +83,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
       const [t] = await backend.addTxns([manualTxn(action, me, phone, fils, note.trim(), myName)]);
       setAmount(""); setNote("");
       // Only ask in-page when the setting says "ask"; otherwise the message already opened
-      if (reg !== true && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: t });
+      if (reg !== true && !local && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: t });
       tellThem(t);
       toast(s.recorded);
     } catch { setErr(s.saveFailed); }
@@ -96,7 +97,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
     try {
       const [t] = await backend.addTxns([st]);
       // Only ask in-page when the setting says "ask"; otherwise the message already opened
-      if (reg !== true && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: t });
+      if (reg !== true && !local && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: t });
       tellThem(t);
       toast(s.nowSettled);
     } catch { toast(s.saveFailed); }
@@ -108,7 +109,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
     try {
       const [r] = await backend.addTxns([reversalOf(t, me, myName)]);
       // Only ask in-page when the setting says "ask"; otherwise the message already opened
-      if (reg !== true && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: r });
+      if (reg !== true && !local && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: r });
       tellThem(r);
       toast(s.cancelled);
     } catch { toast(s.tryAgain); }
@@ -143,8 +144,10 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
   return (
     <Sheet title={f.name} onClose={onClose} lead={<Avatar name={f.name} id={phone} size={48} />}>
       <div className="muted" style={{ marginTop: -10, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <span dir="ltr">{displayPhone(phone)}</span>
-        <span>{reg ? `· ${s.hasApp}` : reg === false ? `· ${s.noApp}` : ""}</span>
+        {local ? <span>{s.nameOnly}</span> : <>
+          <span dir="ltr">{displayPhone(phone)}</span>
+          <span>{reg ? `· ${s.hasApp}` : reg === false ? `· ${s.noApp}` : ""}</span>
+        </>}
         <button className="link-btn" onClick={() => { setNewName(f.name); setPanel({ kind: "rename" }); }}>
           {f.saved ? s.rename : s.saveFriend}
         </button>
@@ -201,7 +204,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         <div className="tiles">
           <IconTile primary icon={<Plus />} label={s.newDebtBtn} expanded={showForm} onClick={() => setShowForm(!showForm)} />
           {f.balance !== 0 && <IconTile icon={<Handshake />} label={s.settleShort} onClick={() => setPanel({ kind: "settle" })} />}
-          {f.balance > 0 && <IconTile icon={<Bell />} label={s.remind} href={waLink(phone, waReminder(f.name, f.balance, dialect, myCliq))} />}
+          {f.balance > 0 && !local && <IconTile icon={<Bell />} label={s.remind} href={waLink(phone, waReminder(f.name, f.balance, dialect, myCliq))} />}
           <IconTile icon={<FileText />} label={s.statementShort} expanded={panel?.kind === "share"} onClick={() => setPanel(panel?.kind === "share" ? null : { kind: "share" })} />
         </div>
       )}
@@ -246,7 +249,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         <div className="confirm calm share-pick">
           <span>{s.statementHow(f.name)}</span>
           <div className="actions">
-            <a className="btn wa" href={waLink(phone, statement)} target="_blank" rel="noopener" onClick={() => setPanel(null)}><WhatsApp />{s.statementAsText}</a>
+            {!local && <a className="btn wa" href={waLink(phone, statement)} target="_blank" rel="noopener" onClick={() => setPanel(null)}><WhatsApp />{s.statementAsText}</a>}
             <button className="btn ghost" onClick={() => { setPanel(null); if (!openStatement({ txns: f.txns, me, myName, name: f.name, phone, balance: f.balance })) toast(s.popupBlocked); }}>📄 {s.statementPdf}</button>
           </div>
         </div>

@@ -35,7 +35,24 @@ export function normalizePhone(input: string): Phone | null {
 }
 
 /** Display format: +962791234567 → 079 123 4567 */
+/**
+ * A friend added by name only, without a phone number. They live only in my
+ * contacts; entries with them are visible to me alone and no messages go out.
+ */
+export function isLocalId(p: Phone): boolean {
+  return p.startsWith("~");
+}
+
+export function newLocalId(): Phone {
+  const a = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let s = "~";
+  const r = crypto.getRandomValues(new Uint8Array(12));
+  for (const b of r) s += a[b % a.length];
+  return s;
+}
+
 export function displayPhone(p: Phone): string {
+  if (isLocalId(p)) return "";
   const m = /^\+962(7\d)(\d{3})(\d{4})$/.exec(p);
   if (m) return `0${m[1]} ${m[2]} ${m[3]}`;
   return p;
