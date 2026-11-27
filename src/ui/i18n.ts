@@ -267,6 +267,7 @@ const jo = {
   collectRate: (n: number) => `من ديون الشهر الأخير، استرددت ${n.toLocaleString("ar-JO")}٪`,
   recordPayment: "تسجيل دفعة",
   billReady: (r: string) => `تم تقسيم فاتورة ${r}`,
+  opReady: (n: string) => `تم تسجيل «${n}»`,
   readyToSettle: "جاهزة",
   billReadyText: "أُضيفت حصة كل شخص إلى حسابه. تجد التفاصيل في الأسفل.",
   gotIt: "حسنًا",

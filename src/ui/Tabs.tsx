@@ -278,7 +278,7 @@ function LatestBill() {
     <div className="bill-card">
       <span className="ic">✨</span>
       <div className="who">
-        <div className="bill-head"><b>{t.billReady(latest.note.replace(/^فاتورة\s*/, "") || t.theBill)}</b><span className="status">{t.readyToSettle}</span></div>
+        <div className="bill-head"><b>{!latest.note || latest.note.startsWith("فاتورة") ? t.billReady(latest.note.replace(/^فاتورة\s*/, "") || t.theBill) : t.opReady(latest.note)}</b><span className="status">{t.readyToSettle}</span></div>
         <span className="muted">{t.billReadyText}</span>
         <div className="actions">
           <button className="btn small" onClick={hide}>{t.gotIt}</button>
