@@ -79,6 +79,7 @@ await shot(sara, "name");
 await sara.getByRole("button", { name: "ابدأ الآن" }).click();
 await sara.locator(".gtile.new").waitFor();
 await shot(sara, "empty-home");
+check(await sara.locator(".welcome").isVisible(), "a new user sees the 3-step welcome");
 check(true, "sign-in flow");
 
 // ───────── Add friends and a manual entry ─────────
@@ -311,6 +312,7 @@ await sara.locator(".gtile", { hasText: "الشلة" }).click();
 await sara.getByRole("button", { name: "إغلاق" }).click();
 await tab(sara, /ملخص الحساب/);
 await shot(sara, "home-after-split");
+check(await sara.locator(".open-items").isVisible(), "the summary lists debts not paid yet");
 check((await sara.getByRole("button", { name: /تذكير/ }).count()) === 0, "no reminder button on the summary tab");
 await tab(sara, /جهات الاتصال/);
 await sara.getByRole("button", { name: /📣/ }).click();
@@ -339,8 +341,14 @@ const saraForAhmad = await text(ahmad, ".acc.out .row:has-text('سارة')").cat
 check(saraForAhmad.length > 0, "Ahmad sees Sara under 'I owe'", `Ahmad sees: ${saraForAhmad}`);
 check((await ahmad.locator(".acc .row .who b", { hasText: /^لينا$/ }).count()) === 0, "Ahmad sees Lina from the group, but not her entries with Sara");
 
-await ahmad.locator(".row:has-text('سارة')").click();
+await ahmad.locator(".acc.out .row:has-text('سارة')").click();
 await shot(ahmad, "ahmad-friend");
+check(!(await ahmad.getByLabel("المبلغ (د.أ)").isVisible()), "with entries, the form is tucked away and the lists come first");
+check(await ahmad.getByRole("button", { name: /دين جديد/ }).isVisible(), "'دين جديد' opens the form");
+const [popup] = await Promise.all([ahmad.waitForEvent("popup"), ahmad.getByRole("button", { name: /كشف حساب PDF/ }).click()]);
+await popup.waitForLoadState();
+check((await popup.title()).includes("كشف حساب"), "the PDF statement opens ready to print");
+await popup.close();
 await ahmad.getByRole("button", { name: /💬 تعليق/ }).first().click();
 check(await ahmad.locator(".bubble", { hasText: "رجّعهم الخميس" }).isVisible(), "the other side sees the comment");
 await ahmad.getByLabel(/اكتب تعليق/).fill("أكيد");
@@ -359,7 +367,7 @@ await tab(sara, /ملخص الحساب/);
 check((await sara.locator(".acc .row:has-text('أحمد')").count()) === 0, "once settled, Ahmad leaves Sara's owed lists");
 
 // ───────── Reverse an entry ─────────
-await sara.locator(".row:has-text('لينا')").click();
+await sara.locator(".acc .row:has-text('لينا')").first().click();
 const before = await text(sara, ".big-bal");
 await sara.getByRole("button", { name: "إلغاء" }).first().click();
 await sara.getByRole("button", { name: "نعم، ألغِها" }).click();

@@ -13,6 +13,7 @@ import { Pencil, WhatsApp } from "./icons";
 import { normalizeCliq } from "../core/cliq";
 import { balanceAfter } from "./model";
 import { dateLabel } from "./util";
+import { openStatement } from "./statement";
 import { useDialect, type Strings } from "./i18n";
 
 // Two clear choices: money they owe me, or money I owe them
@@ -23,7 +24,7 @@ const actions = (s: Strings): { id: ManualAction; label: string; hint: string }[
 
 function chipFor(t: Txn, me: Phone, s: Strings): { text: string; cls: string } {
   const mine = signedFor(t, me) > 0;
-  if (t.kind === "split") return { text: s.chipBill, cls: mine ? "p" : "o" };
+  if (t.kind === "split") return { text: !t.note || t.note.startsWith("فاتورة") ? s.chipBill : s.chipShared, cls: mine ? "p" : "o" };
   if (t.kind === "settle") return { text: s.chipSettle, cls: "" };
   if (t.pays) return { text: s.chipPayment, cls: "" };
   if (t.kind === "reversal") return { text: s.chipCancel, cls: "" };
@@ -48,6 +49,8 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
   const [cliqIn, setCliqIn] = useState("");
   const voided = useMemo(() => reversedIds(f?.txns ?? []), [f?.txns]);
   const paid = useMemo(() => paidStates(f?.txns ?? []), [f?.txns]);
+  // The entry form opens on its own only for a new friend; otherwise the lists come first
+  const [showForm, setShowForm] = useState(() => !(f?.txns.length));
 
   if (!f) return null;
   const reg = registered(phone);
@@ -205,7 +208,10 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         </div>
       )}
 
-      <form onSubmit={record} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {!showForm && (
+        <button className="btn big paid new-debt-btn" onClick={() => setShowForm(true)}>＋ {s.newDebtBtn}</button>
+      )}
+      {showForm && <form onSubmit={record} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div className="seg two" role="group" aria-label={s.newDebt}>
           {ACTIONS.map((a) => (
             <button type="button" key={a.id} aria-pressed={action === a.id} onClick={() => setAction(a.id)}>
@@ -227,7 +233,8 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         <button className={`btn big ${action === "hePaidMe" ? "owe" : "paid"}`} disabled={busy}>
           {s.recordIt}
         </button>
-      </form>
+        {f.txns.length > 0 && <button type="button" className="link-btn" style={{ alignSelf: "center" }} onClick={() => setShowForm(false)}>{s.hideForm}</button>}
+      </form>}
 
       {panel?.kind === "settle" && (
         <div className="confirm calm">
@@ -256,8 +263,20 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         {f.txns.length > 0 && (
           <a className="btn soft" href={waLink(phone, statement)} target="_blank" rel="noopener"><WhatsApp />{s.sendAll}</a>
         )}
+        {f.txns.length > 0 && (
+          <button className="btn soft" onClick={() => { if (!openStatement({ txns: f.txns, me, myName, name: f.name, phone, balance: f.balance })) toast(s.popupBlocked); }}>📄 {s.statementPdf}</button>
+        )}
       </div>
 
+      {f.txns.length > 0 && (() => {
+        const open = [...paid.values()].filter((x) => !x.done).length;
+        return (
+          <div className="section-h entries-h">
+            <h3>{s.itemsTitle}</h3>
+            <span className="muted">{open ? s.openItems(open) : s.allPaid}</span>
+          </div>
+        );
+      })()}
       <div className="entries">
         {!f.txns.length ? <div className="empty">{s.nothingYet}</div> : f.txns.map((t) => {
           const v = signedFor(t, me);

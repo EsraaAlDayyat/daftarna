@@ -87,6 +87,20 @@ export function Home() {
           </div>
         )}
 
+        {friends.length === 0 && groups.length === 0 && tab !== "friends" && (
+          <section className="welcome" aria-label={t.firstRunTitle}>
+            <h2>{t.firstRunTitle}</h2>
+            <p className="muted">{t.welcomeSub}</p>
+            <ol>
+              <li><span className="n">١</span><span className="what"><b>{t.welcomeS1}</b><small>{t.welcomeS1Hint}</small></span>
+                <button className="btn small" onClick={() => setOpen({ kind: "add" })}>{t.welcomeS1Btn}</button></li>
+              <li className="later"><span className="n">٢</span><span className="what"><b>{t.welcomeS2}</b><small>{t.welcomeS2Hint}</small></span></li>
+              <li><span className="n">٣</span><span className="what"><b>{t.welcomeS3}</b><small>{t.welcomeS3Hint}</small></span>
+                <button className="btn small soft" onClick={() => setOpen({ kind: "newGroup" })}>{t.welcomeS3Btn}</button></li>
+            </ol>
+          </section>
+        )}
+
         {tab === "groups" ? (
           <section aria-label={t.tabGroups}>
             <div className="groups">

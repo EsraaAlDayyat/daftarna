@@ -752,3 +752,27 @@ label.l, span.l { display: block; font-size: 13px; color: var(--ink-soft); margi
 .paid-tag { color: var(--accent); font-size: 13px; font-weight: 600; padding: 5px 4px; }
 .entry.is-paid .amt { text-decoration: line-through; opacity: .55; }
 .entry.is-paid .txt { opacity: .75; }
+
+/* ───── First-run welcome ───── */
+.welcome { background: var(--sheet); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 18px 16px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.welcome h2 { margin: 0; font-size: 19px; font-weight: 600; }
+.welcome p { margin: 0 0 4px; font-size: 14px; }
+.welcome ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.welcome li { display: flex; align-items: center; gap: 12px; }
+.welcome .n { flex: 0 0 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.welcome .what { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.welcome .what b { font-weight: 600; font-size: 15px; }
+.welcome .what small { color: var(--ink-soft); font-size: 13px; }
+.welcome li.later { opacity: .7; }
+.new-debt-btn { margin-top: 2px; }
+.entries-h { display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px; }
+.entries-h .muted { font-size: 13px; }
+
+/* ───── Open items on the summary ───── */
+.open-items { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
+.open-items .oi-head { display: flex; justify-content: space-between; align-items: baseline; }
+.open-items .oi-head b { font-weight: 600; font-size: 16px; }
+.open-items .oi-head .muted { font-size: 13px; }
+.oi-late { background: var(--owe-bg); color: var(--ink); border-radius: 14px; padding: 10px 12px; font-size: 13.5px; display: flex; flex-direction: column; gap: 8px; }
+.oi-late-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.open-items .orow { width: 100%; border: 0; background: none; font: inherit; color: inherit; text-align: start; cursor: pointer; }

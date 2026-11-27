@@ -1,9 +1,9 @@
 // The "my friends" and "settle my accounts" tabs.
 import { useMemo, useState } from "react";
-import { settlementFor, signedFor } from "../core/ledger";
+import { paidStates, settlementFor, signedFor, type Txn } from "../core/ledger";
 import { waReminder } from "../core/messages";
 import { jod } from "../core/money";
-import { displayPhone, waLink, type Phone } from "../core/phone";
+import { displayPhone, smsLink, waLink, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
@@ -233,6 +233,8 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
         </div>
       </section>
 
+      <OpenItems friends={friends} onFriend={onFriend} />
+
       {rate !== null && rate > 0 && (
         <div className="ocard line-card">
           <span className="sq"><Trend dir="up" /></span>
@@ -429,6 +431,75 @@ function QuickSettle({ theyOwe, iOwe }: { theyOwe: Friend[]; iOwe: Friend[] }) {
           {theyOwe.map(row)}
           {iOwe.map(row)}
         </>
+      )}
+    </section>
+  );
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+const OLD_AFTER_DAYS = 14;
+
+/**
+ * Debts not paid yet, across everyone: how many, the oldest few, and a nudge to
+ * remind people whose debt to me is more than two weeks old.
+ */
+function OpenItems({ friends, onFriend }: { friends: Friend[]; onFriend: (p: Phone) => void }) {
+  const { t, dialect } = useDialect();
+  const { me, myCliq } = useApp();
+  const [all, setAll] = useState(false);
+  const items = useMemo(() => {
+    const out: { f: Friend; t: Txn; left: number; mine: boolean }[] = [];
+    for (const f of friends) {
+      const st = paidStates(f.txns);
+      for (const x of f.txns) {
+        const p = st.get(x.id);
+        if (p && !p.done) out.push({ f, t: x, left: p.left, mine: signedFor(x, me) > 0 });
+      }
+    }
+    return out.sort((a, b) => a.t.createdAt - b.t.createdAt);
+  }, [friends, me]);
+  if (!items.length) return null;
+  const now = Date.now();
+  const days = (x: Txn) => Math.floor((now - x.createdAt) / DAY);
+  // People who've owed me for a while (and still owe overall)
+  const late = [...new Map(items.filter((i) => i.mine && days(i.t) >= OLD_AFTER_DAYS && i.f.balance > 0).map((i) => [i.f.phone, i.f])).values()];
+  const shown = all ? items : items.slice(0, 3);
+  return (
+    <section className="ocard open-items" aria-label={t.openTitle}>
+      <div className="oi-head">
+        <b>📌 {t.openTitle}</b>
+        <span className="muted">{t.openCount(items.length)}</span>
+      </div>
+      {late.length > 0 && (
+        <div className="oi-late">
+          <span>⏰ {t.lateNudge(late.map((f) => f.name).join("، "), OLD_AFTER_DAYS)}</span>
+          <div className="oi-late-btns">
+            {late.slice(0, 3).map((f) => {
+              const msg = waReminder(f.name, f.balance, dialect, myCliq);
+              return (
+                <span key={f.phone} className="send-pair">
+                  <a className="btn small" href={smsLink(f.phone, msg)} aria-label={t.smsTo(f.name)}>💬 {f.name}</a>
+                  <a className="btn small ghost" href={waLink(f.phone, msg)} target="_blank" rel="noopener" aria-label={t.waTo(f.name)}><WhatsApp /></a>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <div className="olist">
+        {shown.map(({ f, t: x, left, mine }) => (
+          <button key={x.id} className="row orow" onClick={() => onFriend(f.phone)}>
+            <Avatar name={f.name} id={f.phone} size={34} />
+            <span className="who">
+              <b>{f.name}</b>
+              <span className="muted">{x.note || t.debtWord} · {days(x) === 0 ? t.today : t.daysAgo(days(x))}</span>
+            </span>
+            <span className={`num ${mine ? "pos" : "neg"}`}>{jod(left)}</span>
+          </button>
+        ))}
+      </div>
+      {items.length > 3 && (
+        <button className="link-btn acc-more" onClick={() => setAll(!all)}>{all ? t.showLess : t.showAllOpen(items.length)}</button>
       )}
     </section>
   );
