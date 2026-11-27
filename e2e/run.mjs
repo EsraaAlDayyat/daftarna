@@ -108,6 +108,21 @@ for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3
   await sara.locator(".bubble.mine", { hasText: "رجّعهم الخميس" }).waitFor();
   await shot(sara, "comment");
   check(true, "can comment on an entry");
+
+  // "تم الدفع" next to one item: only that item is marked paid
+  await sara.getByRole("button", { name: /لي عنده/ }).click();
+  await sara.getByLabel("المبلغ (د.أ)").fill("4");
+  await sara.getByLabel("البيان").fill("شاورما");
+  await sara.getByRole("button", { name: "تسجيل", exact: true }).click();
+  await sara.getByRole("button", { name: "حسنًا" }).click();
+  await sara.locator(".entry", { hasText: "شاورما" }).getByRole("button", { name: /تم الدفع/ }).click();
+  check(await sara.getByText(/هل دفع لك أحمد .+ مقابل «شاورما»/).isVisible(), "asks before marking an item paid");
+  await sara.getByRole("button", { name: "نعم، تم الدفع" }).click();
+  await sara.getByRole("button", { name: "حسنًا" }).click();
+  check(await sara.locator(".entry.is-paid", { hasText: "شاورما" }).locator(".paid-tag").isVisible(), "the item shows as paid");
+  check(await sara.locator(".entry", { hasText: "تكسي" }).getByRole("button", { name: /تم الدفع/ }).isVisible(), "other items stay open");
+  check((await text(sara, ".big-bal .amt")).includes("١٠"), "the balance only drops by the paid item");
+  await shot(sara, "friend-paid-item");
   await sara.getByRole("button", { name: "إغلاق" }).click();
 }
 await sara.getByRole("button", { name: "إغلاق" }).click();

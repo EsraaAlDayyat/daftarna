@@ -21,6 +21,8 @@ export interface Txn {
   createdAt: number; // ms
   billId?: string;
   reverses?: string;
+  /** A payment for one specific entry ("تم الدفع" next to it). */
+  pays?: string;
 }
 
 export type NewTxn = Omit<Txn, "id" | "parties" | "createdAt"> & { createdAt?: number };
@@ -109,6 +111,66 @@ export function manualTxn(action: ManualAction, me: Phone, other: Phone, amount:
     amount,
     kind: action === "iLentHim" ? "lend" : action === "iPaidHim" ? "paidFor" : "repay",
     note,
+    createdBy: me,
+    createdByName: myName,
+  };
+}
+
+
+/** An entry that creates a debt (as opposed to a payment, settlement or cancellation). */
+export function isDebtItem(t: Txn): boolean {
+  return t.kind === "lend" || t.kind === "paidFor" || t.kind === "split" || (t.kind === "repay" && !t.pays);
+}
+
+export interface PaidState {
+  /** Paid back so far through "تم الدفع". */
+  paid: Fils;
+  left: Fils;
+  done: boolean;
+}
+
+/**
+ * Which debt items between me and one friend are paid. An item is paid when:
+ * - payments marked against it ("تم الدفع") cover it, or
+ * - the account between us came back to zero after it (a settlement, or
+ *   payments that evened everything out).
+ */
+export function paidStates(txns: Txn[]): Map<string, PaidState> {
+  const voided = reversedIds(txns);
+  const live = txns.filter((t) => !voided.has(t.id) && t.kind !== "reversal").sort((a, b) => a.createdAt - b.createdAt);
+  const paidFor = new Map<string, Fils>();
+  for (const t of live) if (t.pays) paidFor.set(t.pays, (paidFor.get(t.pays) ?? 0) + t.amount);
+
+  // The last moment the account was even: everything before it is paid
+  let lastZero = -Infinity;
+  if (live.length) {
+    const a = live[0].parties[0];
+    let bal = 0;
+    for (const t of live) {
+      bal += signedFor(t, a);
+      if (bal === 0) lastZero = t.createdAt;
+    }
+  }
+
+  const out = new Map<string, PaidState>();
+  for (const t of live) {
+    if (!isDebtItem(t)) continue;
+    const paid = Math.min(t.amount, paidFor.get(t.id) ?? 0);
+    const done = paid >= t.amount || t.createdAt <= lastZero;
+    out.set(t.id, { paid, left: done ? 0 : t.amount - paid, done });
+  }
+  return out;
+}
+
+/** "تم الدفع" for one item: a payment in the other direction for what's left of it. */
+export function paymentFor(item: Txn, left: Fils, me: Phone, myName: string): NewTxn {
+  return {
+    creditor: item.debtor,
+    debtor: item.creditor,
+    amount: left,
+    kind: "repay",
+    note: `سداد: ${item.note || "دين"}`.slice(0, 120),
+    pays: item.id,
     createdBy: me,
     createdByName: myName,
   };

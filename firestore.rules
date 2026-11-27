@@ -76,7 +76,7 @@ service cloud.firestore {
 
     function validTxn(d) {
       return d.keys().hasAll(['creditor', 'debtor', 'parties', 'amount', 'kind', 'note', 'createdBy', 'createdByName', 'createdAt'])
-        && d.keys().hasOnly(['creditor', 'debtor', 'parties', 'amount', 'kind', 'note', 'createdBy', 'createdByName', 'createdAt', 'billId', 'reverses'])
+        && d.keys().hasOnly(['creditor', 'debtor', 'parties', 'amount', 'kind', 'note', 'createdBy', 'createdByName', 'createdAt', 'billId', 'reverses', 'pays'])
         && isPhone(d.creditor) && isPhone(d.debtor) && d.creditor != d.debtor
         && d.parties == [d.creditor, d.debtor]
         && d.amount is int && d.amount > 0 && d.amount <= 100000000
@@ -85,7 +85,17 @@ service cloud.firestore {
         && d.createdByName is string && d.createdByName.size() <= 40
         && d.createdAt == request.time
         && (d.kind == 'split') == ('billId' in d)
-        && (d.kind == 'reversal') == ('reverses' in d);
+        && (d.kind == 'reversal') == ('reverses' in d)
+        && (!('pays' in d) || (d.kind == 'repay' && d.pays is string && paysOk(d)));
+    }
+
+    // "تم الدفع" for one entry: same two people, the other direction, no more than the entry
+    function paysOk(d) {
+      let orig = get(/databases/$(database)/documents/txns/$(d.pays)).data;
+      return orig.kind in ['lend', 'paidFor', 'split', 'repay']
+        && !('pays' in orig)
+        && d.creditor == orig.debtor && d.debtor == orig.creditor
+        && d.amount <= orig.amount;
     }
 
     function splitOk(d) {

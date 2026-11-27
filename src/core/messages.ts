@@ -41,6 +41,8 @@ function describeForOther(t: Txn, viewer: Phone, place: string | undefined, othe
       return `ألغى ${who} قيدًا بقيمة ${a}${t.note ? `، ${t.note.replace(/^إلغاء: /, "")}` : ""}`;
     // The creditor is whoever paid. If the viewer owes, the author paid them; otherwise the viewer paid the author.
     case "repay":
+      if (t.pays) return viewerOwes ? `سجّل ${who} أنه دفع لك ${a}${note}` : `سجّل ${who} أنك دفعت له ${a}${note}`;
+      return viewerOwes ? `سجّل ${who} أنه دفع عنك ${a}${note}` : `سجّل ${who} أنك دفعت عنه ${a}${note}`;
     case "paidFor":
       return viewerOwes ? `سجّل ${who} أنه دفع عنك ${a}${note}` : `سجّل ${who} أنك دفعت عنه ${a}${note}`;
     case "lend":
@@ -64,6 +66,14 @@ export function waTxnMessage(t: Txn, me: Phone, otherName: string, balanceAfterF
   const what = t.note ? t.note.replace(/^إلغاء: /, "") : "";
   const mine = signedFor(t, me) > 0; // the entry is in my favour: they owe me for it
   let line: string;
+  if (t.pays) {
+    // "تم الدفع" for one entry
+    const item = what.replace(/^سداد: /, "");
+    line = mine
+      ? `دفعت لك ${a} سدادًا لـ«${item}» ✅`
+      : `استلمت منك ${a} سدادًا لـ«${item}»، شكرًا لك 🙏`;
+    return `مرحبًا ${otherName} 👋\n${line}\n${balanceForThem(balanceAfterForMe)}${footer}`;
+  }
   switch (t.kind) {
     case "split":
       // A restaurant bill's note starts with "فاتورة"; other operations (gift, trip…) carry their own name

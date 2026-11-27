@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  manualTxn, reversalOf, reversedIds, settlementFor, signedFor, type ManualAction, type Txn,
+  isDebtItem, manualTxn, paidStates, paymentFor, reversalOf, reversedIds, settlementFor, signedFor, type ManualAction, type Txn,
 } from "../core/ledger";
 import { waReminder, waStatement, waTxnMessage } from "../core/messages";
 import { jod, parseJod } from "../core/money";
@@ -25,11 +25,12 @@ function chipFor(t: Txn, me: Phone, s: Strings): { text: string; cls: string } {
   const mine = signedFor(t, me) > 0;
   if (t.kind === "split") return { text: s.chipBill, cls: mine ? "p" : "o" };
   if (t.kind === "settle") return { text: s.chipSettle, cls: "" };
+  if (t.pays) return { text: s.chipPayment, cls: "" };
   if (t.kind === "reversal") return { text: s.chipCancel, cls: "" };
   return mine ? { text: s.theyOweMeTab, cls: "p" } : { text: s.iOweThemTab, cls: "o" };
 }
 
-type Panel = null | { kind: "sent"; txn: Txn } | { kind: "settle" } | { kind: "undo"; txn: Txn } | { kind: "rename" } | { kind: "cliq" };
+type Panel = null | { kind: "sent"; txn: Txn } | { kind: "settle" } | { kind: "undo"; txn: Txn } | { kind: "pay"; txn: Txn; left: number } | { kind: "rename" } | { kind: "cliq" };
 
 export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => void }) {
   const { friends, me, myName, myCliq, backend, toast, registered, comments, contacts } = useApp();
@@ -46,6 +47,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
   const [newName, setNewName] = useState("");
   const [cliqIn, setCliqIn] = useState("");
   const voided = useMemo(() => reversedIds(f?.txns ?? []), [f?.txns]);
+  const paid = useMemo(() => paidStates(f?.txns ?? []), [f?.txns]);
 
   if (!f) return null;
   const reg = registered(phone);
@@ -104,6 +106,19 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
       if (reg !== true && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: r });
       tellThem(r);
       toast(s.cancelled);
+    } catch { toast(s.tryAgain); }
+    finally { setBusy(false); }
+  }
+
+  /** "تم الدفع" next to one entry: records the payment for what's left of it. */
+  async function markPaid(t: Txn, left: number) {
+    setBusy(true);
+    try {
+      const [p] = await backend.addTxns([paymentFor(t, left, me, myName)]);
+      setPanel(null);
+      if (reg !== true && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: p });
+      tellThem(p);
+      toast(s.markedPaid);
     } catch { toast(s.tryAgain); }
     finally { setBusy(false); }
   }
@@ -220,6 +235,12 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
           <div className="actions"><button className="btn paid" disabled={busy} onClick={settle}>{s.yesSettle}</button><button className="btn ghost" onClick={() => setPanel(null)}>{s.no}</button></div>
         </div>
       )}
+      {panel?.kind === "pay" && (
+        <div className="confirm calm">
+          <span>{s.payConfirm(panel.txn.note || chipFor(panel.txn, me, s).text, jod(panel.left), signedFor(panel.txn, me) > 0, f.name)}</span>
+          <div className="actions"><button className="btn paid" disabled={busy} onClick={() => markPaid(panel.txn, panel.left)}>{s.yesPaid}</button><button className="btn ghost" onClick={() => setPanel(null)}>{s.no}</button></div>
+        </div>
+      )}
       {panel?.kind === "undo" && (
         <div className="confirm">
           <span>{s.cancelConfirm(panel.txn.note || chipFor(panel.txn, me, s).text, jod(panel.txn.amount))}</span>
@@ -243,10 +264,11 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
           const c = chipFor(t, me, s);
           const isVoid = voided.has(t.id);
           const canUndo = !isVoid && t.kind !== "reversal" && t.createdBy === me;
+          const ps = !isVoid && isDebtItem(t) ? paid.get(t.id) : undefined;
           return (
-            <div key={t.id} className={`entry${isVoid ? " void" : ""}`}>
+            <div key={t.id} className={`entry${isVoid ? " void" : ""}${ps?.done ? " is-paid" : ""}`}>
               <div className="txt">
-                <span className={`chip ${c.cls}`}>{c.text}</span>{t.note}
+                <span className={`chip ${c.cls}`}>{c.text}</span>{t.pays ? t.note.replace(/^سداد: /, "") : t.note}
                 <div className="meta">{dateLabel(t.createdAt, s)} · {t.createdBy === me ? s.youAdded : s.theyAdded(t.createdByName)}{isVoid ? ` · ${s.cancelledTag}` : ""}</div>
               </div>
               <div className={`amt num ${v > 0 ? "pos" : "neg"}`}>{jod(t.amount)}<span className="sr-only">{v > 0 ? ` ${s.owedShort}` : ` ${s.oweShort}`}</span></div>
@@ -260,6 +282,11 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
                     </button>
                   );
                 })()}
+                {ps && (ps.done
+                  ? <span className="paid-tag">✓ {s.paidTag}</span>
+                  : <button className="mark-paid" onClick={() => setPanel({ kind: "pay", txn: t, left: ps.left })}>
+                      ✓ {s.markPaidBtn}{ps.paid > 0 ? ` (${s.leftOf(jod(ps.left))})` : ""}
+                    </button>)}
                 {canUndo && <button className="undo" onClick={() => setPanel({ kind: "undo", txn: t })}>{s.cancel}</button>}
               </div>
               {openThread === t.id && <Thread txn={t} />}

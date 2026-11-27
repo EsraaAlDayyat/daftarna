@@ -141,6 +141,17 @@ describe("bills", () => {
     await assertFails(setDoc(doc(db, "bills/op3"), bill({ kind: "gift", recipient: 5 })));
   });
 
+  it("'تم الدفع': a payment for one entry must go the other way and not exceed it", async () => {
+    const db = as("s", S);
+    await assertSucceeds(setDoc(doc(db, "txns/d1"), txn({ creditor: S, debtor: A, amount: 3500, kind: "lend" })));
+    const pay = (o: Record<string, unknown>) => txn({ creditor: A, debtor: S, amount: 3500, kind: "repay", pays: "d1", ...o });
+    await assertSucceeds(setDoc(doc(db, "txns/p1"), pay({})));
+    await assertFails(setDoc(doc(db, "txns/p2"), pay({ amount: 4000 })));              // more than the entry
+    await assertFails(setDoc(doc(db, "txns/p3"), pay({ creditor: S, debtor: A })));    // same direction
+    await assertFails(setDoc(doc(db, "txns/p4"), pay({ kind: "lend" })));              // only a repayment can pay
+    await assertFails(setDoc(doc(db, "txns/p5"), pay({ pays: "p1" })));                // can't pay a payment
+  });
+
   it("cannot reuse another user's bill as cover", async () => {
     await env.withSecurityRulesDisabled(async (c) => {
       await setDoc(doc(c.firestore(), "bills/b9"), { ...bill(), createdAt: new Date() });
