@@ -100,18 +100,23 @@ export function Home() {
                 return (
                   <button key={g.id} className="gtile" onClick={() => openGroup(g.id)}>
                     <span className="g-emoji" aria-hidden="true">{g.emoji}</span>
-                    <b>{g.name}</b>
-                    <span className="muted">{t.people(g.members.length)}</span>
-                    {b !== 0 && (
-                      <span className={`gbal num ${b > 0 ? "pos" : "neg"}`}>{`${b > 0 ? t.owedShort : t.oweShort} ${jod(Math.abs(b))}`}</span>
-                    )}
+                    <span className="g-who">
+                      <b>{g.name}</b>
+                      <span className="muted">{t.people(g.members.length)}</span>
+                    </span>
+                    {b !== 0
+                      ? <span className={`gbal num ${b > 0 ? "pos" : "neg"}`}>{`${b > 0 ? t.owedShort : t.oweShort} ${jod(Math.abs(b))}`}</span>
+                      : <span className="gbal muted">{t.groupEven}</span>}
+                    <span className="g-chev" aria-hidden="true">‹</span>
                   </button>
                 );
               })}
               <button className="gtile new" onClick={() => setOpen({ kind: "newGroup" })}>
                 <span className="g-emoji" aria-hidden="true"><Plus /></span>
-                <b>{t.newGroup}</b>
-                <span className="muted">{t.newGroupHint}</span>
+                <span className="g-who">
+                  <b>{t.newGroup}</b>
+                  <span className="muted">{t.newGroupHint}</span>
+                </span>
               </button>
             </div>
           </section>

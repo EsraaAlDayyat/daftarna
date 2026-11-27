@@ -77,16 +77,20 @@ h1 { font-weight: 500; font-size: 32px; line-height: 1.1; color: var(--accent); 
 .section-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .section-h h2, .section-h h3 { font-weight: 500; font-size: 18.5px; }
 
-/* Groups grid */
-.groups { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* Groups: a list of horizontal rows */
+.groups { display: flex; flex-direction: column; gap: 8px; }
 .gtile {
-  background: var(--sheet); border: 0; border-radius: var(--r-card); box-shadow: var(--shadow);
-  padding: 14px; text-align: start; cursor: pointer; display: flex; flex-direction: column; gap: 2px; min-height: 132px;
+  background: var(--sheet); border: 0; border-radius: var(--r-card); box-shadow: var(--shadow); color: var(--ink);
+  padding: 12px 14px; text-align: start; cursor: pointer; display: flex; align-items: center; gap: 12px; font: inherit; width: 100%;
 }
-.gtile b { font-weight: 500; font-size: 17.5px; margin-top: 6px; overflow-wrap: anywhere; }
+.gtile .g-emoji { width: 44px; height: 44px; flex: 0 0 44px; font-size: 22px; }
+.gtile .g-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.gtile b { font-weight: 500; font-size: 16.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gtile .muted { font-size: 13px; }
-.gtile .gbal { margin-top: auto; font-weight: 500; font-size: 14.5px; }
-.gtile.new { background: transparent; box-shadow: none; border: 2px dashed var(--rule); color: var(--accent); }
+.gtile .gbal { font-weight: 500; font-size: 14.5px; white-space: nowrap; }
+.gtile .gbal.muted { font-weight: 400; font-size: 13px; }
+.gtile .g-chev { color: var(--ink-soft); font-size: 20px; line-height: 1; }
+.gtile.new { background: transparent; box-shadow: none; border: 1.5px dashed var(--rule); color: var(--accent); }
 .gtile.new .muted { color: var(--ink-soft); }
 .g-emoji {
   width: 46px; height: 46px; border-radius: 16px; background: var(--accent-soft);

@@ -476,6 +476,7 @@ const jo = {
   statementPdf: "كشف حساب PDF",
   settleShort: "تسوية",
   shareShort: "مشاركة",
+  groupEven: "متعادل",
   statementShort: "كشف حساب",
   statementHow: (n: string) => `كيف تريد إرسال كشف الحساب لـ${n}؟`,
   statementAsText: "رسالة واتساب",
