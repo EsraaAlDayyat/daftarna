@@ -9,7 +9,8 @@ import { getNotifyVia } from "./notifyPref";
 import { useApp } from "./AppContext";
 import { Sheet } from "./Sheet";
 import { Avatar } from "./Avatar";
-import { Pencil, WhatsApp } from "./icons";
+import { Bell, FileText, Handshake, Pencil, Plus, WhatsApp } from "./icons";
+import { IconTile } from "./IconTile";
 import { normalizeCliq } from "../core/cliq";
 import { balanceAfter } from "./model";
 import { dateLabel } from "./util";
@@ -208,8 +209,13 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         </div>
       )}
 
-      {!showForm && (
-        <button className="btn big paid new-debt-btn" onClick={() => setShowForm(true)}>＋ {s.newDebtBtn}</button>
+      {f.txns.length > 0 && (
+        <div className="tiles">
+          <IconTile primary icon={<Plus />} label={s.newDebtBtn} expanded={showForm} onClick={() => setShowForm(!showForm)} />
+          {f.balance !== 0 && <IconTile icon={<Handshake />} label={s.settleShort} onClick={() => setPanel({ kind: "settle" })} />}
+          {f.balance > 0 && <IconTile icon={<Bell />} label={s.remind} href={waLink(phone, waReminder(f.name, f.balance, dialect, myCliq))} />}
+          <IconTile icon={<FileText />} label={s.statementShort} expanded={panel?.kind === "share"} onClick={() => setPanel(panel?.kind === "share" ? null : { kind: "share" })} />
+        </div>
       )}
       {showForm && <form onSubmit={record} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div className="seg two" role="group" aria-label={s.newDebt}>
@@ -233,7 +239,6 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         <button className={`btn big ${action === "hePaidMe" ? "owe" : "paid"}`} disabled={busy}>
           {s.recordIt}
         </button>
-        {f.txns.length > 0 && <button type="button" className="link-btn" style={{ alignSelf: "center" }} onClick={() => setShowForm(false)}>{s.hideForm}</button>}
       </form>}
 
       {panel?.kind === "settle" && (
@@ -255,15 +260,6 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         </div>
       )}
 
-      {f.txns.length > 0 && (
-        <div className="quick-acts">
-          {f.balance !== 0 && <button className="qa" onClick={() => setPanel({ kind: "settle" })}><span aria-hidden="true">🤝</span>{s.settleShort}</button>}
-          {f.balance > 0 && (
-            <a className="qa" href={waLink(phone, waReminder(f.name, f.balance, dialect, myCliq))} target="_blank" rel="noopener"><span aria-hidden="true">📣</span>{s.remind}</a>
-          )}
-          <button className="qa" aria-expanded={panel?.kind === "share"} onClick={() => setPanel(panel?.kind === "share" ? null : { kind: "share" })}><span aria-hidden="true">📄</span>{s.statementShort}</button>
-        </div>
-      )}
       {panel?.kind === "share" && (
         <div className="confirm calm share-pick">
           <span>{s.statementHow(f.name)}</span>

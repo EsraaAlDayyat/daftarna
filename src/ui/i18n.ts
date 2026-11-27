@@ -473,6 +473,7 @@ const jo = {
   markPaidBtn: "تم الدفع",
   statementPdf: "كشف حساب PDF",
   settleShort: "تسوية",
+  shareShort: "مشاركة",
   statementShort: "كشف حساب",
   statementHow: (n: string) => `كيف تريد إرسال كشف الحساب لـ${n}؟`,
   statementAsText: "رسالة واتساب",

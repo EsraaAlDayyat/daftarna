@@ -220,7 +220,7 @@ check(["أحمد", "لينا", "عمر"].every((n) => owedRows.some((r) => r.inc
 // ───────── Group order: write who wants what, then the bill assigns itself ─────────
 await tab(sara, /مجموعاتي/);
 await sara.locator(".gtile", { hasText: "الشلة" }).click();
-await sara.getByRole("button", { name: /^🛒 طلب$/ }).click();
+await sara.getByRole("button", { name: "طلب", exact: true }).click();
 await sara.getByLabel(/طلب أنا/).fill("شاورما");
 await sara.getByLabel("طلب أحمد").fill("شاورما وليمون");
 await sara.getByLabel("طلب لينا").fill("فتوش وحمص ومشاوي");
@@ -315,7 +315,7 @@ await shot(sara, "home-after-split");
 check(await sara.locator(".open-items").isVisible(), "the summary lists debts not paid yet");
 check((await sara.getByRole("button", { name: /تذكير/ }).count()) === 0, "no reminder button on the summary tab");
 await tab(sara, /جهات الاتصال/);
-await sara.getByRole("button", { name: /📣/ }).click();
+await sara.getByRole("button", { name: "تذكير المدينين" }).click();
 check(await sara.getByRole("dialog").getByText("أحمد").first().isVisible(), "reminders live on the contacts tab");
 await shot(sara, "remind");
 await sara.getByRole("button", { name: "إغلاق" }).click();

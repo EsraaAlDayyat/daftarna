@@ -7,7 +7,8 @@ import { displayPhone, smsLink, waLink, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
-import { Arrow, Contacts, Dialpad, Handshake, Plus, Search, Share, Wallet, WhatsApp } from "./icons";
+import { Arrow, Bell, Contacts, Dialpad, Handshake, Plus, Search, Share, UserPlus, Wallet, WhatsApp } from "./icons";
+import { IconTile } from "./IconTile";
 import type { Friend } from "./model";
 import { canPickContacts, pickContacts } from "./contacts";
 import { useDialect } from "./i18n";
@@ -42,9 +43,9 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
 
   return (
     <section aria-label={t.tabFriends} className="stack">
-      <div className="contacts-actions">
-        <button className="btn add-small add-friend" onClick={onAdd}><Plus />{t.addFriendBtn}</button>
-        {theyOwe.length > 0 && <button className="btn add-small remind-btn" onClick={() => setRemind(true)}>📣 {t.remindAll}</button>}
+      <div className="tiles">
+        <IconTile primary icon={<UserPlus />} label={t.addFriendBtn} onClick={onAdd} />
+        {theyOwe.length > 0 && <IconTile icon={<Bell />} label={t.remindAll} onClick={() => setRemind(true)} />}
       </div>
 
 
@@ -221,11 +222,11 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
 
       <OpenItems friends={friends} onFriend={onFriend} />
 
-      <div className="pay-row">
-        <button className="btn big paid" onClick={() => setNewDebt(true)}><Plus />{t.newDebtBtn}</button>
+      <div className="tiles">
+        <IconTile primary icon={<Plus />} label={t.newDebtBtn} onClick={() => setNewDebt(true)} />
         {(theyOwe.length > 0 || iOwe.length > 0) && (
           <>
-            <button className="btn big outline" onClick={() => setPick(true)}><Wallet />{t.recordPayment}</button>
+            <IconTile icon={<Wallet />} label={t.recordPayment} onClick={() => setPick(true)} />
             <ShareSummary theyOwe={theyOwe} iOwe={iOwe} />
           </>
         )}
@@ -361,7 +362,7 @@ function ShareSummary({ theyOwe, iOwe }: { theyOwe: Friend[]; iOwe: Friend[] }) 
     if (typeof navigator.share === "function") { try { await navigator.share({ text }); } catch { /* cancelled */ } return; }
     try { await navigator.clipboard.writeText(text); toast(t.copiedSummary); } catch { toast(t.tryAgain); }
   }
-  return <button className="icon-btn big" onClick={share} aria-label={t.shareSummary}><Share /></button>;
+  return <IconTile icon={<Share />} label={t.shareShort} onClick={share} />;
 }
 
 /** One tap per person to record that the whole balance was paid. Asks once more before saving. */

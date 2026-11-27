@@ -59,3 +59,6 @@ export const Palette = () => <I><path d="M12 3a9 9 0 0 0 0 18c1.5 0 2-1 2-2s-1-1
 export const Pencil = () => <I><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="m13.5 6.5 4 4" /></I>;
 export const Exit = () => <I><path d="M10 4H5v16h5" /><path d="M14 8l4 4-4 4M18 12H9" /></I>;
 export const Gift = () => <I><rect x="3" y="8" width="18" height="5" rx="1" /><path d="M5 13v8h14v-8M12 8v13M12 8S10 3 7.5 4.5 9 8 12 8zM12 8s2-5 4.5-3.5S15 8 12 8z" /></I>;
+export const FileText = () => <I><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v4h4M10 12h5M10 16h5" /></I>;
+export const Cart = () => <I><path d="M3 4h2l2.2 11h10.6L20 8H6.4" /><circle cx="9" cy="19" r="1.4" /><circle cx="17" cy="19" r="1.4" /></I>;
+export const UserPlus = () => <I><circle cx="10" cy="8" r="3.5" /><path d="M3.5 20c.6-4 3.2-6 6.5-6s5.9 2 6.5 6M19 8v6M16 11h6" /></I>;

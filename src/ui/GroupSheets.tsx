@@ -5,7 +5,8 @@ import type { Group } from "../data/backend";
 import { useApp } from "./AppContext";
 import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
-import { Plus, WhatsApp } from "./icons";
+import { Cart, Plus, WhatsApp } from "./icons";
+import { IconTile } from "./IconTile";
 import { groupBalance } from "./model";
 import { clearInvite, inviteLink } from "./invite";
 import { useT } from "./i18n";
@@ -169,12 +170,14 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onOperation, on
       )}
 
       <div className="sticky-foot group-foot">
-        {!alone && (
-          <>
-            <button className="btn big outline" disabled={starting} onClick={() => start()}>🛒 {t.newOrder}</button>
-          </>
-        )}
-        <button className="btn big warm" onClick={onOperation} disabled={alone}><Plus />{alone ? t.addSomeoneFirst : t.addOperation}</button>
+        {alone
+          ? <button className="btn big warm" disabled><Plus />{t.addSomeoneFirst}</button>
+          : (
+            <div className="tiles">
+              <IconTile primary icon={<Plus />} label={t.addOperation} onClick={onOperation} />
+              <IconTile icon={<Cart />} label={t.newOrder} onClick={() => start()} disabled={starting} />
+            </div>
+          )}
       </div>
     </Sheet>
   );

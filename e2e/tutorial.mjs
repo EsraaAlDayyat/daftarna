@@ -183,7 +183,7 @@ await tap(a.getByRole("button", { name: "إغلاق" }), 700);
 await caption("رقم كل صديق في مكان واحد", "اضغط على الرقم للاتصال أو المراسلة");
 await wait(2400);
 await caption("📣 تذكير المدينين", "رسالة تذكير لكل من عليه مبلغ، بلطف ودون إحراج");
-await tap(a.getByRole("button", { name: /📣/ }), 2600);
+await tap(a.getByRole("button", { name: "تذكير المدينين" }), 2600);
 await tap(a.getByRole("button", { name: "إغلاق" }), 600);
 
 // ───────── 4. Summary ─────────
