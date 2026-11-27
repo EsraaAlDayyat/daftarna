@@ -144,7 +144,10 @@ describe("bills", () => {
   it("'تم الدفع': a payment for one entry must go the other way and not exceed it", async () => {
     const db = as("s", S);
     await assertSucceeds(setDoc(doc(db, "txns/d1"), txn({ creditor: S, debtor: A, amount: 3500, kind: "lend" })));
-    const pay = (o: Record<string, unknown>) => txn({ creditor: A, debtor: S, amount: 3500, kind: "repay", pays: "d1", ...o });
+    const pay = (o: Record<string, unknown>) => {
+      const d = { creditor: A, debtor: S, amount: 3500, kind: "repay", pays: "d1", ...o };
+      return txn({ ...d, parties: [d.creditor, d.debtor] });
+    };
     await assertSucceeds(setDoc(doc(db, "txns/p1"), pay({})));
     await assertFails(setDoc(doc(db, "txns/p2"), pay({ amount: 4000 })));              // more than the entry
     await assertFails(setDoc(doc(db, "txns/p3"), pay({ creditor: S, debtor: A })));    // same direction
