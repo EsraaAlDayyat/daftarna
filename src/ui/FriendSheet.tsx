@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  isDebtItem, manualTxn, paidStates, paymentFor, reversalOf, reversedIds, settlementFor, signedFor, type ManualAction, type Txn,
+  isDebtItem, manualTxn, paidStates, reversalOf, reversedIds, settlementFor, signedFor, type ManualAction, type Txn,
 } from "../core/ledger";
 import { waReminder, waStatement, waTxnMessage } from "../core/messages";
 import { jod, parseJod } from "../core/money";
@@ -11,6 +11,7 @@ import { Sheet } from "./Sheet";
 import { Avatar } from "./Avatar";
 import { Bell, FileText, Handshake, Pencil, Plus, WhatsApp } from "./icons";
 import { IconTile } from "./IconTile";
+import { PayToggle } from "./PayToggle";
 import { normalizeCliq } from "../core/cliq";
 import { balanceAfter } from "./model";
 import { dateLabel } from "./util";
@@ -32,7 +33,7 @@ function chipFor(t: Txn, me: Phone, s: Strings): { text: string; cls: string } {
   return mine ? { text: s.theyOweMeTab, cls: "p" } : { text: s.iOweThemTab, cls: "o" };
 }
 
-type Panel = null | { kind: "sent"; txn: Txn } | { kind: "settle" } | { kind: "undo"; txn: Txn } | { kind: "pay"; txn: Txn; left: number } | { kind: "share" } | { kind: "rename" } | { kind: "cliq" };
+type Panel = null | { kind: "sent"; txn: Txn } | { kind: "settle" } | { kind: "undo"; txn: Txn } | { kind: "share" } | { kind: "rename" } | { kind: "cliq" };
 
 export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => void }) {
   const { friends, me, myName, myCliq, backend, toast, registered, comments, contacts } = useApp();
@@ -110,19 +111,6 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
       if (reg !== true && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: r });
       tellThem(r);
       toast(s.cancelled);
-    } catch { toast(s.tryAgain); }
-    finally { setBusy(false); }
-  }
-
-  /** "تم الدفع" next to one entry: records the payment for what's left of it. */
-  async function markPaid(t: Txn, left: number) {
-    setBusy(true);
-    try {
-      const [p] = await backend.addTxns([paymentFor(t, left, me, myName)]);
-      setPanel(null);
-      if (reg !== true && getNotifyVia() === "ask") setPanel({ kind: "sent", txn: p });
-      tellThem(p);
-      toast(s.markedPaid);
     } catch { toast(s.tryAgain); }
     finally { setBusy(false); }
   }
@@ -247,12 +235,6 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
           <div className="actions"><button className="btn paid" disabled={busy} onClick={settle}>{s.yesSettle}</button><button className="btn ghost" onClick={() => setPanel(null)}>{s.no}</button></div>
         </div>
       )}
-      {panel?.kind === "pay" && (
-        <div className="confirm calm">
-          <span>{s.payConfirm(panel.txn.note || chipFor(panel.txn, me, s).text, jod(panel.left), signedFor(panel.txn, me) > 0, f.name)}</span>
-          <div className="actions"><button className="btn paid" disabled={busy} onClick={() => markPaid(panel.txn, panel.left)}>{s.yesPaid}</button><button className="btn ghost" onClick={() => setPanel(null)}>{s.no}</button></div>
-        </div>
-      )}
       {panel?.kind === "undo" && (
         <div className="confirm">
           <span>{s.cancelConfirm(panel.txn.note || chipFor(panel.txn, me, s).text, jod(panel.txn.amount))}</span>
@@ -303,11 +285,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
                     </button>
                   );
                 })()}
-                {ps && (ps.done
-                  ? <span className="paid-tag">✓ {s.paidTag}</span>
-                  : <button className="mark-paid" onClick={() => setPanel({ kind: "pay", txn: t, left: ps.left })}>
-                      ✓ {s.markPaidBtn}{ps.paid > 0 ? ` (${s.leftOf(jod(ps.left))})` : ""}
-                    </button>)}
+                {ps && <PayToggle txn={t} left={ps.left} done={ps.done} phone={phone} name={f.name} history={f.txns} />}
                 {canUndo && <button className="undo" onClick={() => setPanel({ kind: "undo", txn: t })}>{s.cancel}</button>}
               </div>
               {openThread === t.id && <Thread txn={t} />}

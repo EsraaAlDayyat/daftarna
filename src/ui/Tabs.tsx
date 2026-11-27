@@ -9,6 +9,7 @@ import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
 import { Arrow, Bell, Contacts, Dialpad, Handshake, Plus, Search, Share, UserPlus, Wallet, WhatsApp } from "./icons";
 import { IconTile } from "./IconTile";
+import { PayToggle } from "./PayToggle";
 import type { Friend } from "./model";
 import { canPickContacts, pickContacts } from "./contacts";
 import { useDialect } from "./i18n";
@@ -428,28 +429,31 @@ function OpenItems({ friends, onFriend }: { friends: Friend[]; onFriend: (p: Pho
   const { t, dialect } = useDialect();
   const { me, myCliq } = useApp();
   const [all, setAll] = useState(false);
+  // Items paid from this card stay in view (as "تم الدفع") until the next visit
+  const [paidNow, setPaidNow] = useState<Set<string>>(() => new Set());
   const items = useMemo(() => {
-    const out: { f: Friend; t: Txn; left: number; mine: boolean }[] = [];
+    const out: { f: Friend; t: Txn; left: number; mine: boolean; done: boolean }[] = [];
     for (const f of friends) {
       const st = paidStates(f.txns);
       for (const x of f.txns) {
         const p = st.get(x.id);
-        if (p && !p.done) out.push({ f, t: x, left: p.left, mine: signedFor(x, me) > 0 });
+        if (p && (!p.done || paidNow.has(x.id))) out.push({ f, t: x, left: p.left, mine: signedFor(x, me) > 0, done: p.done });
       }
     }
     return out.sort((a, b) => a.t.createdAt - b.t.createdAt);
-  }, [friends, me]);
+  }, [friends, me, paidNow]);
+  const openCount = items.filter((i) => !i.done).length;
   if (!items.length) return null;
   const now = Date.now();
   const days = (x: Txn) => Math.floor((now - x.createdAt) / DAY);
   // People who've owed me for a while (and still owe overall)
-  const late = [...new Map(items.filter((i) => i.mine && days(i.t) >= OLD_AFTER_DAYS && i.f.balance > 0).map((i) => [i.f.phone, i.f])).values()];
+  const late = [...new Map(items.filter((i) => !i.done && i.mine && days(i.t) >= OLD_AFTER_DAYS && i.f.balance > 0).map((i) => [i.f.phone, i.f])).values()];
   const shown = all ? items : items.slice(0, 3);
   return (
     <section className="ocard open-items" aria-label={t.openTitle}>
       <div className="oi-head">
         <b>📌 {t.openTitle}</b>
-        <span className="muted">{t.openCount(items.length)}</span>
+        <span className="muted">{openCount ? t.openCount(openCount) : t.allPaid}</span>
       </div>
       {late.length > 0 && (
         <div className="oi-late">
@@ -468,15 +472,19 @@ function OpenItems({ friends, onFriend }: { friends: Friend[]; onFriend: (p: Pho
         </div>
       )}
       <div className="olist">
-        {shown.map(({ f, t: x, left, mine }) => (
-          <button key={x.id} className="row orow" onClick={() => onFriend(f.phone)}>
-            <Avatar name={f.name} id={f.phone} size={34} />
-            <span className="who">
-              <b>{f.name}</b>
-              <span className="muted">{x.note || t.debtWord} · {days(x) === 0 ? t.today : t.daysAgo(days(x))}</span>
-            </span>
-            <span className={`num ${mine ? "pos" : "neg"}`}>{jod(left)}</span>
-          </button>
+        {shown.map(({ f, t: x, left, mine, done }) => (
+          <div key={x.id} className="oi-row">
+            <button className="row orow" onClick={() => onFriend(f.phone)}>
+              <Avatar name={f.name} id={f.phone} size={34} />
+              <span className="who">
+                <b>{f.name}</b>
+                <span className="muted">{x.note || t.debtWord} · {days(x) === 0 ? t.today : t.daysAgo(days(x))}</span>
+              </span>
+              <span className={`num ${mine ? "pos" : "neg"}${done ? " struck" : ""}`}>{jod(done ? x.amount : left)}</span>
+            </button>
+            <PayToggle txn={x} left={left} done={done} phone={f.phone} name={f.name} history={f.txns}
+              onPaid={(id) => setPaidNow((s) => new Set(s).add(id))} />
+          </div>
         ))}
       </div>
       {items.length > 3 && (

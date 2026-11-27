@@ -800,3 +800,21 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 .tile[aria-expanded="true"] { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .tile[aria-expanded="true"] .tile-lbl { color: var(--accent); }
 .sticky-foot.group-foot .tiles { flex: 1; }
+
+/* ───── Paid toggle: empty circle "لم يُدفع" → green check "تم الدفع" ───── */
+.pay-toggle { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; border: 0; background: none; padding: 2px 4px;
+  font: inherit; color: var(--ink-soft); cursor: pointer; min-width: 52px; -webkit-tap-highlight-color: transparent; }
+.pay-toggle .pt-ic svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pay-toggle .pt-lbl { font-size: 11.5px; line-height: 1.1; white-space: nowrap; }
+.pay-toggle:not(.paid):active .pt-ic { transform: scale(.9); }
+.pay-toggle.paid { color: var(--paid); cursor: default; }
+.pay-toggle.paid .pt-ic svg circle { fill: var(--paid-bg); }
+.pay-toggle.paid .pt-ic { animation: pt-pop .35s ease; }
+@keyframes pt-pop { 0% { transform: scale(.6); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.pay-toggle:disabled { opacity: 1; }
+.oi-row { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
+.oi-row:last-child { border-bottom: 0; }
+.oi-row .orow { flex: 1; min-width: 0; border-bottom: 0 !important; }
+.num.struck { text-decoration: line-through; opacity: .55; }
+.tile.primary[aria-expanded="true"] { box-shadow: inset 0 0 0 2px rgba(255,255,255,.55); }
+.tile.primary[aria-expanded="true"] .tile-lbl { color: #fff; }

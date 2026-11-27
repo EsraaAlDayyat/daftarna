@@ -116,12 +116,11 @@ for (const [name, phone] of [["أحمد", "0782222222"], ["لينا", "077 333 3
   await sara.getByLabel("البيان").fill("شاورما");
   await sara.getByRole("button", { name: "تسجيل", exact: true }).click();
   await sara.getByRole("button", { name: "حسنًا" }).click();
-  await sara.locator(".entry", { hasText: "شاورما" }).getByRole("button", { name: /تم الدفع/ }).click();
-  check(await sara.getByText(/هل دفع لك أحمد .+ مقابل «شاورما»/).isVisible(), "asks before marking an item paid");
-  await sara.getByRole("button", { name: "نعم، تم الدفع" }).click();
-  await sara.getByRole("button", { name: "حسنًا" }).click();
-  check(await sara.locator(".entry.is-paid", { hasText: "شاورما" }).locator(".paid-tag").isVisible(), "the item shows as paid");
-  check(await sara.locator(".entry", { hasText: "تكسي" }).getByRole("button", { name: /تم الدفع/ }).isVisible(), "other items stay open");
+  check(await sara.locator(".entry", { hasText: "شاورما" }).locator(".pay-toggle:not(.paid)").isVisible(), "each debt shows a 'لم يُدفع' icon");
+  await sara.locator(".entry", { hasText: "شاورما" }).getByRole("button", { name: /لم يُدفع/ }).click();
+  await sara.locator(".entry.is-paid", { hasText: "شاورما" }).waitFor();
+  check(await sara.locator(".entry.is-paid", { hasText: "شاورما" }).locator(".pay-toggle.paid").isVisible(), "one tap turns it into 'تم الدفع'");
+  check(await sara.locator(".entry", { hasText: "تكسي" }).getByRole("button", { name: /لم يُدفع/ }).isVisible(), "other items stay open");
   check((await text(sara, ".big-bal .amt")).includes("١٠"), "the balance only drops by the paid item");
   await shot(sara, "friend-paid-item");
   await sara.getByRole("button", { name: "إغلاق" }).click();
@@ -313,6 +312,12 @@ await sara.getByRole("button", { name: "إغلاق" }).click();
 await tab(sara, /ملخص الحساب/);
 await shot(sara, "home-after-split");
 check(await sara.locator(".open-items").isVisible(), "the summary lists debts not paid yet");
+{
+  const row = sara.locator(".open-items .oi-row").first();
+  await row.getByRole("button", { name: /لم يُدفع/ }).click();
+  await row.locator(".pay-toggle.paid").waitFor();
+  check(await row.locator(".pay-toggle.paid").isVisible(), "on the summary too, one tap marks a debt paid");
+}
 check((await sara.getByRole("button", { name: /تذكير/ }).count()) === 0, "no reminder button on the summary tab");
 await tab(sara, /جهات الاتصال/);
 await sara.getByRole("button", { name: "تذكير المدينين" }).click();
