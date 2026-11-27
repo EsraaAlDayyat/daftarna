@@ -57,3 +57,24 @@ describe("payment messages", async () => {
     expect(notificationText(q, A, 0)).toContain("سجّل سارة أنه دفع لك 2 د.أ");
   });
 });
+
+describe("giving a name-only friend a number", async () => {
+  const { moveToPhone } = await import("./ledger");
+  it("moves what's open to the number and zeroes the name-only record", () => {
+    const K = "~khaled123456", P = "+962795555555";
+    const a = at(manualTxn("iLentHim", ME, K, 3000, "قهوة", "سارة"));
+    const b = at(manualTxn("iLentHim", ME, K, 5000, "غدا", "سارة"));
+    const pa = at(paymentFor(a, 3000, ME, "سارة")); // coffee paid
+    const c = at(manualTxn("hePaidMe", ME, K, 1000, "بنزين", "سارة"));
+    const moved = moveToPhone([a, b, pa, c], K, P, ME, "سارة", "0795555555");
+    expect(moved.map((t) => [t.creditor, t.debtor, t.amount, t.note])).toEqual([
+      [ME, P, 5000, "غدا"],
+      [P, ME, 1000, "بنزين"],
+      [K, ME, 4000, "نُقل إلى 0795555555"],
+    ]);
+    const all = [a, b, pa, c, ...moved.map((t) => at(t))];
+    const bal = balancesFor(all, ME);
+    expect(bal.get(K) ?? 0).toBe(0);
+    expect(bal.get(P)).toBe(4000);
+  });
+});

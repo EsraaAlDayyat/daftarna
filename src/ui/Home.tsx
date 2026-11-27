@@ -139,7 +139,7 @@ export function Home() {
         </button>
       </nav>
 
-      {open?.kind === "friend" && <FriendSheet phone={open.phone} onClose={back} />}
+      {open?.kind === "friend" && <FriendSheet key={open.phone} phone={open.phone} onClose={back} onOpenFriend={(p) => setOpen({ kind: "friend", phone: p })} />}
       {open?.kind === "add" && (
         <AddFriendSheet groupId={open.groupId} onClose={back}
           onAdded={(p) => setOpen(open.groupId ? { kind: "group", id: open.groupId } : { kind: "friend", phone: p })} />

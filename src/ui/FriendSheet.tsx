@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import {
-  isDebtItem, manualTxn, paidStates, reversalOf, reversedIds, settlementFor, signedFor, type ManualAction, type Txn,
+  isDebtItem, manualTxn, moveToPhone, paidStates, reversalOf, reversedIds, settlementFor, signedFor, type ManualAction, type Txn,
 } from "../core/ledger";
 import { waReminder, waStatement, waTxnMessage } from "../core/messages";
 import { jod, parseJod } from "../core/money";
-import { displayPhone, isLocalId, smsLink, waLink, type Phone } from "../core/phone";
+import { displayPhone, isLocalId, normalizePhone, smsLink, waLink, type Phone } from "../core/phone";
 import { getNotifyVia } from "./notifyPref";
 import { useApp } from "./AppContext";
 import { Sheet } from "./Sheet";
@@ -33,9 +33,9 @@ function chipFor(t: Txn, me: Phone, s: Strings): { text: string; cls: string } {
   return mine ? { text: s.theyOweMeTab, cls: "p" } : { text: s.iOweThemTab, cls: "o" };
 }
 
-type Panel = null | { kind: "sent"; txn: Txn } | { kind: "settle" } | { kind: "undo"; txn: Txn } | { kind: "share" } | { kind: "rename" } | { kind: "cliq" };
+type Panel = null | { kind: "sent"; txn: Txn } | { kind: "settle" } | { kind: "undo"; txn: Txn } | { kind: "share" } | { kind: "addPhone" } | { kind: "rename" } | { kind: "cliq" };
 
-export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => void }) {
+export function FriendSheet({ phone, onClose, onOpenFriend }: { phone: Phone; onClose: () => void; onOpenFriend?: (p: Phone) => void }) {
   const { friends, me, myName, myCliq, backend, toast, registered, comments, contacts } = useApp();
   const [openThread, setOpenThread] = useState<string | null>(null);
   const { t: s, dialect } = useDialect();
@@ -49,6 +49,7 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
   const [panel, setPanel] = useState<Panel>(null);
   const [newName, setNewName] = useState("");
   const [cliqIn, setCliqIn] = useState("");
+  const [newPhone, setNewPhone] = useState("");
   const voided = useMemo(() => reversedIds(f?.txns ?? []), [f?.txns]);
   const paid = useMemo(() => paidStates(f?.txns ?? []), [f?.txns]);
   // The entry form opens on its own only for a new friend; otherwise the lists come first
@@ -60,6 +61,26 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
 
   /** Friends without the app hear about every entry, added or paid back: WhatsApp or SMS opens with the words ready. */
   const local = isLocalId(phone);
+
+  /** A name-only friend gets a number: open debts move to it and they become a regular friend. */
+  async function addPhone(e: React.FormEvent) {
+    e.preventDefault();
+    const p = normalizePhone(newPhone);
+    if (!p) { toast(s.badPhone); return; }
+    if (p === me) { toast(s.thatsYou); return; }
+    setBusy(true);
+    try {
+      const cliq = contacts.find((c) => c.phone === phone)?.cliq;
+      const existing = contacts.find((c) => c.phone === p);
+      await backend.saveContact({ phone: p, name: existing?.name ?? f!.name, ...(cliq && !existing?.cliq ? { cliq } : {}) });
+      const moves = moveToPhone(f!.txns, phone, p, me, myName, displayPhone(p));
+      if (moves.length) await backend.addTxns(moves);
+      await backend.saveContact({ phone, name: f!.name, movedTo: p });
+      toast(s.phoneAdded(f!.name));
+      onOpenFriend?.(p);
+    } catch { toast(s.tryAgain); }
+    finally { setBusy(false); }
+  }
   function tellThem(t: Txn) {
     if (reg === true || local) return; // in-app notification, or a name-only friend with no number
     const via = getNotifyVia();
@@ -144,7 +165,10 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
   return (
     <Sheet title={f.name} onClose={onClose} lead={<Avatar name={f.name} id={phone} size={48} />}>
       <div className="muted" style={{ marginTop: -10, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        {local ? <span>{s.nameOnly}</span> : <>
+        {local ? <>
+          <span>{s.nameOnly}</span>
+          <button className="link-btn" onClick={() => { setNewPhone(""); setPanel({ kind: "addPhone" }); }}>＋ {s.addPhoneLink}</button>
+        </> : <>
           <span dir="ltr">{displayPhone(phone)}</span>
           <span>{reg ? `· ${s.hasApp}` : reg === false ? `· ${s.noApp}` : ""}</span>
         </>}
@@ -232,6 +256,16 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         </button>
       </form>}
 
+      {panel?.kind === "addPhone" && (
+        <form className="confirm calm add-phone" onSubmit={addPhone}>
+          <span>{s.addPhoneHint(f.name)}</span>
+          <input inputMode="tel" dir="ltr" autoFocus value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="079 123 4567" aria-label={s.phone} />
+          <div className="actions">
+            <button className="btn paid" disabled={busy || !newPhone.trim()}>{s.addPhoneBtn}</button>
+            <button type="button" className="btn ghost" onClick={() => setPanel(null)}>{s.no}</button>
+          </div>
+        </form>
+      )}
       {panel?.kind === "settle" && (
         <div className="confirm calm">
           <span>{s.settleConfirm(f.name, jod(Math.abs(f.balance)), f.balance > 0)}</span>

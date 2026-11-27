@@ -111,7 +111,7 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
       const m = need();
       // Merge, so renaming someone keeps their CliQ
       await setDoc(doc(db, "users", m.uid, "contacts", c.phone),
-        { phone: c.phone, name: c.name, ...(c.cliq !== undefined ? { cliq: c.cliq } : {}) }, { merge: true });
+        { phone: c.phone, name: c.name, ...(c.cliq !== undefined ? { cliq: c.cliq } : {}), ...(c.movedTo ? { movedTo: c.movedTo } : {}) }, { merge: true });
     },
     async lookupUser(phone) {
       const s = await getDoc(doc(db, "phones", phone));

@@ -163,6 +163,13 @@ describe("bills", () => {
     await assertFails(setDoc(doc(db, "txns/n3"), txn({ creditor: S, debtor: "~BAD", parties: [S, "~BAD"], amount: 2000, kind: "lend" })));
   });
 
+  it("a name-only contact can point to the number it moved to; a phone contact can't", async () => {
+    const db = as("s", S);
+    await assertSucceeds(setDoc(doc(db, "users/s/contacts/~khaled12345"), { phone: "~khaled12345", name: "خالد", movedTo: A }));
+    await assertFails(setDoc(doc(db, "users/s/contacts/" + A), { phone: A, name: "أحمد", movedTo: L }));
+    await assertFails(setDoc(doc(db, "users/s/contacts/~khaled12346"), { phone: "~khaled12346", name: "خالد", movedTo: "~x" }));
+  });
+
   it("cannot reuse another user's bill as cover", async () => {
     await env.withSecurityRulesDisabled(async (c) => {
       await setDoc(doc(c.firestore(), "bills/b9"), { ...bill(), createdAt: new Date() });

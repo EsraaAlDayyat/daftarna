@@ -338,7 +338,15 @@ await sara.getByRole("button", { name: "تسجيل", exact: true }).click();
 await sara.locator(".entry", { hasText: "قهوة" }).waitFor();
 check((await sara.getByRole("button", { name: "حسنًا" }).count()) === 0, "no message offer for a name-only friend");
 check((await text(sara, ".big-bal .amt")).includes("٣"), "debts work with a name-only friend");
+// Later, give him a number: his open debts move to it
+await sara.getByRole("button", { name: /إضافة رقم/ }).click();
+await sara.getByLabel("رقم الهاتف").last().fill("0796666666");
+await sara.getByRole("button", { name: "إضافة الرقم ونقل الديون" }).click();
+await sara.getByText("079 666 6666").first().waitFor();
+check((await text(sara, ".big-bal .amt")).includes("٣"), "the debt moved to his number");
+check(await sara.locator(".entry", { hasText: "قهوة" }).first().isVisible(), "with the same note");
 await sara.getByRole("button", { name: "إغلاق" }).click();
+check((await sara.locator(".frow", { hasText: "خالد" }).count()) === 1, "he shows once, under his number");
 await tab(sara, /ملخص الحساب/);
 await noHorizontalScroll(sara, "home");
 

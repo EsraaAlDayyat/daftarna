@@ -34,7 +34,8 @@ service cloud.firestore {
         allow read, delete: if signedIn() && request.auth.uid == uid;
         allow create, update: if signedIn() && request.auth.uid == uid
           && isParty(phone)
-          && request.resource.data.keys().hasOnly(['phone', 'name', 'cliq'])
+          && request.resource.data.keys().hasOnly(['phone', 'name', 'cliq', 'movedTo'])
+          && (!('movedTo' in request.resource.data) || (isLocal(phone) && isPhone(request.resource.data.movedTo)))
           && request.resource.data.phone == phone
           && validName(request.resource.data.name)
           && validCliq(request.resource.data);

@@ -11,6 +11,8 @@ export interface Contact {
   name: string;
   /** Their CliQ alias, so I can send them money. */
   cliq?: string;
+  /** A name-only friend who was later given this number (hidden from lists). */
+  movedTo?: Phone;
 }
 
 export interface Bill {

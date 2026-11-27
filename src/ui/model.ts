@@ -18,7 +18,10 @@ export function buildFriends(me: Phone, contacts: Contact[], txns: Txn[], groups
   const byPhone = new Map<Phone, Friend>();
   const nameFromTxns = new Map<Phone, string>();
   for (const t of txns) if (t.createdBy !== me && t.createdByName) nameFromTxns.set(t.createdBy, t.createdByName);
+  // Name-only friends who were given a number are shown under that number instead
+  const moved = new Set(contacts.filter((c) => c.movedTo).map((c) => c.phone));
   for (const c of contacts) {
+    if (moved.has(c.phone)) continue;
     byPhone.set(c.phone, { phone: c.phone, name: c.name, balance: 0, lastAt: null, txns: [], saved: true });
   }
   for (const g of groups) {
@@ -31,6 +34,7 @@ export function buildFriends(me: Phone, contacts: Contact[], txns: Txn[], groups
   for (const t of txns) {
     if (!t.parties.includes(me)) continue;
     const o = otherParty(t, me);
+    if (moved.has(o)) continue;
     let f = byPhone.get(o);
     if (!f) {
       f = { phone: o, name: nameFromTxns.get(o) ?? displayPhone(o), balance: 0, lastAt: null, txns: [], saved: false };

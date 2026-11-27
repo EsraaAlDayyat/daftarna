@@ -175,3 +175,23 @@ export function paymentFor(item: Txn, left: Fils, me: Phone, myName: string): Ne
     createdByName: myName,
   };
 }
+
+/**
+ * Giving a name-only friend a phone number: what's still open with them moves
+ * to the number (each open item with what's left of it, same note), and one
+ * settlement brings the name-only record to zero.
+ */
+export function moveToPhone(txns: Txn[], from: Phone, to: Phone, me: Phone, myName: string, toLabel: string): NewTxn[] {
+  const st = paidStates(txns);
+  const map = (p: Phone) => (p === from ? to : p);
+  const out: NewTxn[] = [];
+  for (const t of [...txns].sort((a, b) => a.createdAt - b.createdAt)) {
+    const s = st.get(t.id);
+    if (!s || s.done || s.left <= 0) continue;
+    out.push({ creditor: map(t.creditor), debtor: map(t.debtor), amount: s.left, kind: t.kind === "split" ? "paidFor" : t.kind, note: t.note, createdBy: me, createdByName: myName });
+  }
+  const bal = balancesFor(txns, me).get(from) ?? 0;
+  const zero = settlementFor(bal, me, from, myName);
+  if (zero) out.push({ ...zero, note: `نُقل إلى ${toLabel}`.slice(0, 120) });
+  return out;
+}
