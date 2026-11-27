@@ -9,6 +9,7 @@ import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
 import { Arrow, Bell, Contacts, Dialpad, Handshake, Plus, Search, Share, UserPlus, Wallet, WhatsApp } from "./icons";
 import { IconTile } from "./IconTile";
+import { EmptyState } from "./EmptyState";
 import { PayToggle } from "./PayToggle";
 import type { Friend } from "./model";
 import { canPickContacts, pickContacts } from "./contacts";
@@ -61,9 +62,7 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
       <div className="list">
         {!friends.length ? (
           <div className="empty">
-            <div className="empty-emoji" aria-hidden="true">🤝</div>
-            <h3>{t.noOneYet}</h3>
-            <div>{t.noFriendsHint}</div>
+            <EmptyState art="people" title={t.noOneYet} line={t.noFriendsHint} />
             {canPickContacts() && <button className="btn soft" disabled={busy} onClick={fromContacts}><Contacts />{t.fromContacts}</button>}
           </div>
         ) : !shown.length ? (
@@ -225,6 +224,9 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
       </section>
 
       <OpenItems friends={friends} onFriend={onFriend} />
+      {friends.length > 0 && !theyOwe.length && !iOwe.length && (
+        <EmptyState art="ledger" title={t.allClearTitle} line={t.allClearLine} />
+      )}
 
       {/* Always three side by side; the last two wait until there's something to pay or share */}
       <div className="tiles three">

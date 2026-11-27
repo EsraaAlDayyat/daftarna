@@ -13,6 +13,7 @@ import { GroupSheet, JoinSheet, NewGroupSheet } from "./GroupSheets";
 import { OrderSheet } from "./OrderSheet";
 import { OutingSheet } from "./OutingSheet";
 import { OperationSheet } from "./OperationSheet";
+import { EmptyState } from "./EmptyState";
 import { groupBalance } from "./model";
 import { pendingJoin } from "./invite";
 import { useT } from "./i18n";
@@ -95,6 +96,9 @@ export function Home() {
         {tab === "groups" ? (
           <section aria-label={t.tabGroups}>
             <div className="groups">
+              {groups.length === 0 && friends.length > 0 && (
+                <EmptyState art="group" title={t.noGroupsTitle} line={t.noGroupsLine} />
+              )}
               {groups.map((g) => {
                 const b = groupBalance(g, friends, me);
                 return (
