@@ -7,7 +7,7 @@ import { displayPhone, smsLink, waLink, type Phone } from "../core/phone";
 import { useApp } from "./AppContext";
 import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
-import { Arrow, Contacts, Dialpad, Handshake, Plus, Search, Share, Trend, Wallet, WhatsApp } from "./icons";
+import { Arrow, Contacts, Dialpad, Handshake, Plus, Search, Share, Wallet, WhatsApp } from "./icons";
 import type { Friend } from "./model";
 import { canPickContacts, pickContacts } from "./contacts";
 import { useDialect } from "./i18n";
@@ -134,33 +134,19 @@ function RemindSheet({ friends, onClose }: { friends: Friend[]; onClose: () => v
 
 // ───────────────────────── Settle my accounts ─────────────────────────
 
-const MONTH = 30 * 86_400_000;
 
 export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart: setOpenPart }: {
   friends: Friend[]; onFriend: (p: Phone) => void; onAdd: () => void;
   part: "in" | "out" | null; setPart: (p: "in" | "out" | null) => void;
 }) {
   const { t } = useDialect();
-  const { txns, me } = useApp();
+  const { me } = useApp();
   const [pick, setPick] = useState(false);
   const [newDebt, setNewDebt] = useState(false);
   const theyOwe = friends.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
   const iOwe = friends.filter((f) => f.balance < 0).sort((a, b) => a.balance - b.balance);
   const sum = (l: Friend[]) => l.reduce((s, f) => s + Math.abs(f.balance), 0);
   const inSum = sum(theyOwe), outSum = sum(iOwe);
-
-  // Of what people came to owe me in the last 30 days, how much they've paid back
-  const rate = useMemo(() => {
-    const since = Date.now() - MONTH;
-    let lent = 0, back = 0;
-    for (const x of txns) {
-      if (x.createdAt < since || !x.parties.includes(me)) continue;
-      const v = signedFor(x, me);
-      if (v > 0 && x.kind !== "reversal" && x.kind !== "settle" && x.kind !== "repay") lent += v;
-      if (v < 0 && (x.kind === "settle" || x.kind === "repay")) back += -v;
-    }
-    return lent ? Math.min(100, Math.round((back / lent) * 100)) : null;
-  }, [txns, me]);
 
   // How much of what each friend came to owe has been paid back (0..1)
   const progress = (f: Friend) => {
@@ -235,21 +221,15 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
 
       <OpenItems friends={friends} onFriend={onFriend} />
 
-      {rate !== null && rate > 0 && (
-        <div className="ocard line-card">
-          <span className="sq"><Trend dir="up" /></span>
-          <span className="who">{t.collectRate(rate)}</span>
-          <span className="pill-o num">{rate.toLocaleString("ar-JO")}٪</span>
-        </div>
-      )}
-
-      <button className="btn add-small new-debt" onClick={() => setNewDebt(true)}><Plus />{t.newDebtWith}</button>
-      {(theyOwe.length > 0 || iOwe.length > 0) && (
-        <div className="pay-row">
-          <button className="btn big outline" onClick={() => setPick(true)}><Wallet />{t.recordPayment}</button>
-          <ShareSummary theyOwe={theyOwe} iOwe={iOwe} />
-        </div>
-      )}
+      <div className="pay-row">
+        <button className="btn big paid" onClick={() => setNewDebt(true)}><Plus />{t.newDebtBtn}</button>
+        {(theyOwe.length > 0 || iOwe.length > 0) && (
+          <>
+            <button className="btn big outline" onClick={() => setPick(true)}><Wallet />{t.recordPayment}</button>
+            <ShareSummary theyOwe={theyOwe} iOwe={iOwe} />
+          </>
+        )}
+      </div>
 
       {part("in", theyOwe, inSum)}
       {part("out", iOwe, outSum)}

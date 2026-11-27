@@ -31,7 +31,7 @@ function chipFor(t: Txn, me: Phone, s: Strings): { text: string; cls: string } {
   return mine ? { text: s.theyOweMeTab, cls: "p" } : { text: s.iOweThemTab, cls: "o" };
 }
 
-type Panel = null | { kind: "sent"; txn: Txn } | { kind: "settle" } | { kind: "undo"; txn: Txn } | { kind: "pay"; txn: Txn; left: number } | { kind: "rename" } | { kind: "cliq" };
+type Panel = null | { kind: "sent"; txn: Txn } | { kind: "settle" } | { kind: "undo"; txn: Txn } | { kind: "pay"; txn: Txn; left: number } | { kind: "share" } | { kind: "rename" } | { kind: "cliq" };
 
 export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => void }) {
   const { friends, me, myName, myCliq, backend, toast, registered, comments, contacts } = useApp();
@@ -255,18 +255,24 @@ export function FriendSheet({ phone, onClose }: { phone: Phone; onClose: () => v
         </div>
       )}
 
-      <div className="actions">
-        {f.balance !== 0 && <button className="btn soft" onClick={() => setPanel({ kind: "settle" })}>{s.settleUp}</button>}
-        {f.balance > 0 && (
-          <a className="btn soft" href={waLink(phone, waReminder(f.name, f.balance, dialect, myCliq))} target="_blank" rel="noopener"><WhatsApp />{s.remind}</a>
-        )}
-        {f.txns.length > 0 && (
-          <a className="btn soft" href={waLink(phone, statement)} target="_blank" rel="noopener"><WhatsApp />{s.sendAll}</a>
-        )}
-        {f.txns.length > 0 && (
-          <button className="btn soft" onClick={() => { if (!openStatement({ txns: f.txns, me, myName, name: f.name, phone, balance: f.balance })) toast(s.popupBlocked); }}>📄 {s.statementPdf}</button>
-        )}
-      </div>
+      {f.txns.length > 0 && (
+        <div className="quick-acts">
+          {f.balance !== 0 && <button className="qa" onClick={() => setPanel({ kind: "settle" })}><span aria-hidden="true">🤝</span>{s.settleShort}</button>}
+          {f.balance > 0 && (
+            <a className="qa" href={waLink(phone, waReminder(f.name, f.balance, dialect, myCliq))} target="_blank" rel="noopener"><span aria-hidden="true">📣</span>{s.remind}</a>
+          )}
+          <button className="qa" aria-expanded={panel?.kind === "share"} onClick={() => setPanel(panel?.kind === "share" ? null : { kind: "share" })}><span aria-hidden="true">📄</span>{s.statementShort}</button>
+        </div>
+      )}
+      {panel?.kind === "share" && (
+        <div className="confirm calm share-pick">
+          <span>{s.statementHow(f.name)}</span>
+          <div className="actions">
+            <a className="btn wa" href={waLink(phone, statement)} target="_blank" rel="noopener" onClick={() => setPanel(null)}><WhatsApp />{s.statementAsText}</a>
+            <button className="btn ghost" onClick={() => { setPanel(null); if (!openStatement({ txns: f.txns, me, myName, name: f.name, phone, balance: f.balance })) toast(s.popupBlocked); }}>📄 {s.statementPdf}</button>
+          </div>
+        </div>
+      )}
 
       {f.txns.length > 0 && (() => {
         const open = [...paid.values()].filter((x) => !x.done).length;

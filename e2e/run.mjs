@@ -345,6 +345,8 @@ await ahmad.locator(".acc.out .row:has-text('سارة')").click();
 await shot(ahmad, "ahmad-friend");
 check(!(await ahmad.getByLabel("المبلغ (د.أ)").isVisible()), "with entries, the form is tucked away and the lists come first");
 check(await ahmad.getByRole("button", { name: /دين جديد/ }).isVisible(), "'دين جديد' opens the form");
+await ahmad.getByRole("button", { name: "كشف حساب", exact: true }).click();
+check(await ahmad.getByRole("link", { name: /رسالة واتساب/ }).isVisible(), "the statement can go as a WhatsApp message or a PDF");
 const [popup] = await Promise.all([ahmad.waitForEvent("popup"), ahmad.getByRole("button", { name: /كشف حساب PDF/ }).click()]);
 await popup.waitForLoadState();
 check((await popup.title()).includes("كشف حساب"), "the PDF statement opens ready to print");
@@ -354,7 +356,7 @@ check(await ahmad.locator(".bubble", { hasText: "رجّعهم الخميس" }).i
 await ahmad.getByLabel(/اكتب تعليق/).fill("أكيد");
 await ahmad.getByRole("button", { name: "إرسال", exact: true }).click();
 await ahmad.locator(".bubble.mine", { hasText: "أكيد" }).waitFor();
-await ahmad.getByRole("button", { name: /تسوية الحساب/ }).click();
+await ahmad.getByRole("button", { name: "تسوية", exact: true }).click();
 await ahmad.getByRole("button", { name: "نعم، سوِّ الحساب" }).click();
 await ahmad.locator(".big-bal .amt.zero").waitFor();
 await shot(ahmad, "ahmad-settled");
