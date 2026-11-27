@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { jod } from "../core/money";
 import type { Phone } from "../core/phone";
-import type { PushState } from "../data/backend";
 import { seedDemo } from "../data/demoBackend";
 import { useApp } from "./AppContext";
 import { Contacts, Gear, Logo, People, Plus, Scale } from "./icons";
@@ -48,8 +47,6 @@ export function Home() {
   });
   const setTab = (x: Tab) => { setTabState(x); try { localStorage.setItem(TAB_KEY, x); } catch { /* */ } window.scrollTo(0, 0); };
   const [accPart, setAccPart] = useState<"in" | "out" | null>("in");
-  const [push, setPush] = useState<PushState | null>(null);
-  useEffect(() => { backend.pushState().then(setPush).catch(() => setPush("unsupported")); }, [backend, open]);
 
   const close = () => setOpen(null);
   // Closing a sheet opened from a group goes back to that group
@@ -78,12 +75,6 @@ export function Home() {
           <div className="banner">
             <span style={{ flex: 1 }}>{t.demoBanner}</span>
             {empty && <button className="btn small" onClick={() => seedDemo(me, myName)}>{t.fillDemo}</button>}
-          </div>
-        )}
-        {(push === "default" || push === "needsInstall") && (
-          <div className="banner">
-            <span style={{ flex: 1 }}>{push === "needsInstall" ? t.pushIos : t.pushAsk}</span>
-            <button className="btn small" onClick={() => setOpen({ kind: "settings" })}>{push === "needsInstall" ? t.how : t.enable}</button>
           </div>
         )}
 
