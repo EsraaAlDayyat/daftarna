@@ -223,14 +223,11 @@ export function AccountsTab({ friends, onFriend, onAdd, part: openPart, setPart:
 
       <OpenItems friends={friends} onFriend={onFriend} />
 
-      <div className="tiles">
+      {/* Always three side by side; the last two wait until there's something to pay or share */}
+      <div className="tiles three">
         <IconTile primary icon={<Plus />} label={t.newDebtBtn} onClick={() => setNewDebt(true)} />
-        {(theyOwe.length > 0 || iOwe.length > 0) && (
-          <>
-            <IconTile icon={<Wallet />} label={t.recordPayment} onClick={() => setPick(true)} />
-            <ShareSummary theyOwe={theyOwe} iOwe={iOwe} />
-          </>
-        )}
+        <IconTile icon={<Wallet />} label={t.recordPayment} onClick={() => setPick(true)} disabled={!theyOwe.length && !iOwe.length} />
+        <ShareSummary theyOwe={theyOwe} iOwe={iOwe} disabled={!theyOwe.length && !iOwe.length} />
       </div>
 
       {part("in", theyOwe, inSum)}
@@ -351,7 +348,7 @@ function PickFriendSheet({ friends, onClose, onPick }: { friends: Friend[]; onCl
   );
 }
 
-function ShareSummary({ theyOwe, iOwe }: { theyOwe: Friend[]; iOwe: Friend[] }) {
+function ShareSummary({ theyOwe, iOwe, disabled }: { theyOwe: Friend[]; iOwe: Friend[]; disabled?: boolean }) {
   const { t } = useDialect();
   const { toast } = useApp();
   const text = [
@@ -363,7 +360,7 @@ function ShareSummary({ theyOwe, iOwe }: { theyOwe: Friend[]; iOwe: Friend[] }) 
     if (typeof navigator.share === "function") { try { await navigator.share({ text }); } catch { /* cancelled */ } return; }
     try { await navigator.clipboard.writeText(text); toast(t.copiedSummary); } catch { toast(t.tryAgain); }
   }
-  return <IconTile icon={<Share />} label={t.shareShort} onClick={share} />;
+  return <IconTile icon={<Share />} label={t.shareShort} onClick={share} disabled={disabled} />;
 }
 
 /** One tap per person to record that the whole balance was paid. Asks once more before saving. */

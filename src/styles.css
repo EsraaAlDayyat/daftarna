@@ -6,7 +6,7 @@
   --warm: var(--accent); --on-warm: var(--on-accent);
   --paid: #11906a; --owe: #d43d5c; --paid-bg: #dcf5ea; --owe-bg: #ffe4ea;
   --shadow: inset 0 0 0 1px var(--line); /* calm: thin outlines instead of drop shadows */
-  --f: "Tajawal", Tahoma, "Segoe UI", sans-serif;
+  --f: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Arabic", Tahoma, sans-serif; /* the phone's own font, same as WhatsApp */
   --tap: 46px;
   --r-card: 16px; --r-ctl: 12px;
   color-scheme: light;
@@ -821,3 +821,5 @@ label.l, span.l { display: block; font-size: 14px; color: var(--ink-soft); margi
 /* Tiles keep their size: four slots per row, so one or two don't stretch across */
 .tiles { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .sticky-foot.group-foot .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tiles.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tile:disabled .tile-ic { background: var(--paper); color: var(--ink-soft); }

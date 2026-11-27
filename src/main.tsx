@@ -1,7 +1,3 @@
-import "@fontsource/tajawal/arabic-400.css";
-import "@fontsource/tajawal/arabic-500.css";
-import "@fontsource/tajawal/latin-400.css";
-import "@fontsource/tajawal/latin-500.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
