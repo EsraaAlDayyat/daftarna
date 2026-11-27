@@ -27,7 +27,7 @@ export function statementHtml(o: { txns: Txn[]; me: Phone; myName: string; name:
   return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>كشف حساب ${esc(o.name)}</title>
 <style>
   @page { size: A4; margin: 16mm; }
-  body { font-family: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif; color: #1c2b24; margin: 0; padding: 24px; }
+  body { font-family: "Tajawal", "Segoe UI", Tahoma, sans-serif; color: #1c2b24; margin: 0; padding: 24px; }
   header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #1f5c47; padding-bottom: 12px; margin-bottom: 18px; }
   h1 { margin: 0; font-size: 22px; font-weight: 600; } .sub { color: #64746b; font-size: 13px; margin-top: 4px; }
   .brand { color: #1f5c47; font-weight: 600; font-size: 18px; }
