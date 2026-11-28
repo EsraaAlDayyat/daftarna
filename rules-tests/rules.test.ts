@@ -209,10 +209,10 @@ describe("groups", () => {
     await assertSucceeds(updateDoc(doc(dbL, "groups/g1"), { members: [S, L], names: { [S]: "سارة", [L]: "لينا" } }));
   });
 
-  it("nobody can be removed, and names must match members", async () => {
+  it("only the creator can take others out, and names must match members", async () => {
     await seed();
     await updateDoc(doc(as("s", S), "groups/g1"), { members: [S, A], names: { [S]: "سارة", [A]: "أحمد" } });
-    await assertFails(updateDoc(doc(as("s", S), "groups/g1"), { members: [S], names: { [S]: "سارة" } }));
+    await assertFails(updateDoc(doc(as("a", A), "groups/g1"), { members: [A], names: { [A]: "أحمد" } }));
     await assertFails(updateDoc(doc(as("s", S), "groups/g1"), { members: [S, A, L], names: { [S]: "سارة", [A]: "أحمد" } }));
     await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "groups/g1")));
   });
