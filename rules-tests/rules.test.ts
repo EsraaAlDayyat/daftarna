@@ -226,6 +226,17 @@ describe("group orders", () => {
     await setDoc(doc(c.firestore(), "groups/g1"), { name: "الشلة", emoji: "🍕", members: [S, A], names: { [S]: "سارة", [A]: "أحمد" }, createdBy: S, createdAt: new Date() });
   });
 
+  it("a member can leave a group; only the creator can delete it", async () => {
+    await seedGroup();
+    // Ahmad can't remove Sara, and can't delete Sara's group
+    await assertFails(updateDoc(doc(as("a", A), "groups/g1"), { members: [A], names: { [A]: "أحمد" } }));
+    await assertFails(deleteDoc(doc(as("a", A), "groups/g1")));
+    // Ahmad leaves
+    await assertSucceeds(updateDoc(doc(as("a", A), "groups/g1"), { members: [S], names: { [S]: "سارة" } }));
+    // Sara (the creator) deletes it
+    await assertSucceeds(deleteDoc(doc(as("s", S), "groups/g1")));
+  });
+
   it("a group member can start an order for the group", async () => {
     await seedGroup();
     await assertSucceeds(setDoc(doc(as("s", S), "orders/o1"), order()));

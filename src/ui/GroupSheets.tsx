@@ -101,7 +101,17 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onOperation, on
     } catch { toast(t.tryAgain); setStarting(false); }
   }
   const [invite, setInvite] = useState<boolean | null>(null);
+  const [ending, setEnding] = useState<null | "leave" | "delete">(null);
+  const [busyEnd, setBusyEnd] = useState(false);
   const t = useT();
+  async function endGroup(how: "leave" | "delete") {
+    setBusyEnd(true);
+    try {
+      if (how === "delete") await backend.deleteGroup(id); else await backend.leaveGroup(id);
+      toast(how === "delete" ? t.groupDeleted : t.groupLeft);
+      onClose();
+    } catch { toast(t.tryAgain); setBusyEnd(false); }
+  }
   const g = groups.find((x) => x.id === id);
   if (!g) return null;
   const net = groupBalance(g, friends, me);
@@ -168,6 +178,25 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onOperation, on
           })}
         </section>
       )}
+
+      <section className="group-end">
+        {!ending ? (
+          <div className="group-end-links">
+            {g.createdBy === me || alone
+              ? <button className="link-btn danger" onClick={() => setEnding("delete")}>🗑 {t.deleteGroup}</button>
+              : null}
+            {!alone && <button className="link-btn danger" onClick={() => setEnding("leave")}>↩ {t.leaveGroup}</button>}
+          </div>
+        ) : (
+          <div className="confirm danger-box">
+            <span>{ending === "delete" ? t.deleteGroupConfirm(g.name) : t.leaveGroupConfirm(g.name)}</span>
+            <div className="actions">
+              <button className="btn danger" disabled={busyEnd} onClick={() => endGroup(ending)}>{ending === "delete" ? t.yesDelete : t.yesLeave}</button>
+              <button className="btn ghost" onClick={() => setEnding(null)}>{t.no}</button>
+            </div>
+          </div>
+        )}
+      </section>
 
       <div className="sticky-foot group-foot">
         {alone

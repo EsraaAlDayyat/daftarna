@@ -840,3 +840,8 @@ input, select, textarea { background: var(--sheet); }
 .empty-state svg { width: 132px; height: auto; }
 .empty-state b { font-size: 17px; font-weight: 500; }
 .empty-state span { color: var(--ink-soft); font-size: 14.5px; max-width: 280px; }
+.group-end { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--rule); }
+.group-end-links { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+.link-btn.danger { color: var(--owe); }
+.confirm.danger-box { background: var(--owe-bg); }
+.btn.danger { background: var(--owe); color: #fff; }

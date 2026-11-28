@@ -347,6 +347,16 @@ check((await text(sara, ".big-bal .amt")).includes("٣"), "the debt moved to his
 check(await sara.locator(".entry", { hasText: "قهوة" }).first().isVisible(), "with the same note");
 await sara.getByRole("button", { name: "إغلاق" }).click();
 check((await sara.locator(".frow", { hasText: "خالد" }).count()) === 1, "he shows once, under his number");
+// Delete a group
+await tab(sara, /مجموعاتي/);
+await sara.locator(".gtile.new").click();
+await sara.getByLabel("اسم المجموعة").fill("تجربة");
+await sara.getByRole("button", { name: "إنشاء المجموعة" }).click();
+await sara.getByRole("button", { name: /حذف المجموعة/ }).click();
+await sara.getByRole("button", { name: "نعم، احذف" }).click();
+await sara.waitForTimeout(500);
+check((await sara.locator(".gtile", { hasText: "تجربة" }).count()) === 0, "the creator can delete a group");
+await tab(sara, /جهات الاتصال/);
 await tab(sara, /ملخص الحساب/);
 await noHorizontalScroll(sara, "home");
 

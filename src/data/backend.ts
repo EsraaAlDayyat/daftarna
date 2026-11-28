@@ -97,6 +97,10 @@ export interface Backend {
   createGroup(name: string, emoji: string): Promise<Group>;
   /** Adds someone (by phone) to a group I'm in. */
   addGroupMember(groupId: string, c: Contact): Promise<void>;
+  /** I leave: the group stays for the others. Entries already recorded stay as they are. */
+  leaveGroup(groupId: string): Promise<void>;
+  /** Only whoever created it (or the last one in it): the group goes for everyone. Entries stay. */
+  deleteGroup(groupId: string): Promise<void>;
   /** Group details from an invite link, before joining. null = link is wrong. */
   getGroup(groupId: string): Promise<Group | null>;
   /** Adds me to a group from its invite link. */

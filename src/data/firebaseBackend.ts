@@ -4,7 +4,7 @@ import {
   getAuth, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, signOut as fbSignOut,
 } from "firebase/auth";
 import {
-  collection, doc, FieldPath, getDoc, getFirestore, onSnapshot, query, runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc,
+  collection, deleteDoc, doc, FieldPath, getDoc, getFirestore, onSnapshot, query, runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc,
   where, writeBatch, type DocumentData,
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
@@ -139,6 +139,21 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
       } catch { return null; }
     },
     async joinGroup(groupId) { const m = need(); await addToGroup(groupId, m.phone, myName); },
+    async leaveGroup(groupId) {
+      const m = need();
+      const ref = doc(db, "groups", groupId);
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists()) return;
+        const g = snap.data();
+        const members: Phone[] = (g.members ?? []).filter((p: Phone) => p !== m.phone);
+        if (!members.length) { tx.delete(ref); return; } // the last one out takes it down
+        const names = { ...(g.names ?? {}) };
+        delete names[m.phone];
+        tx.update(ref, { members, names });
+      });
+    },
+    async deleteGroup(groupId) { need(); await deleteDoc(doc(db, "groups", groupId)); },
 
     watchOrders(cb) {
       const m = need();

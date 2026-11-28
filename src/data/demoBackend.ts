@@ -116,6 +116,20 @@ export function createDemoBackend(): Backend {
       g.names = { ...g.names, [c.phone]: g.names[c.phone] || c.name };
       save();
     },
+    async leaveGroup(groupId) {
+      const g = store.groups.find((x) => x.id === groupId);
+      if (!me || !g || !g.members.includes(me)) throw new Error("permission-denied");
+      g.members = g.members.filter((p) => p !== me);
+      const names = { ...g.names }; delete names[me]; g.names = names;
+      if (!g.members.length) store.groups = store.groups.filter((x) => x !== g);
+      save();
+    },
+    async deleteGroup(groupId) {
+      const g = store.groups.find((x) => x.id === groupId);
+      if (!me || !g || !(g.createdBy === me || (g.members.length === 1 && g.members[0] === me))) throw new Error("permission-denied");
+      store.groups = store.groups.filter((x) => x !== g);
+      save();
+    },
     async getGroup(groupId) {
       const g = store.groups.find((x) => x.id === groupId);
       return g ? { ...g } : null;

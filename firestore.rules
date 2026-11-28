@@ -170,8 +170,8 @@ service cloud.firestore {
       allow update: if signedIn() && validGroup(request.resource.data)
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.members.hasAll(resource.data.members)
-        && (
+        && (isLeaving() || request.resource.data.members.hasAll(resource.data.members))
+        && (isLeaving() || 
           // A member can add people and edit the group
           me() in resource.data.members
           // Someone with the link can only add themselves
@@ -180,7 +180,17 @@ service cloud.firestore {
               && request.resource.data.name == resource.data.name
               && request.resource.data.emoji == resource.data.emoji)
         );
-      allow delete: if false;
+      // Whoever created it, or the last one still in it
+      allow delete: if signedIn() && (resource.data.createdBy == me() || resource.data.members == [me()]);
+
+      // A member leaving: exactly me out of members and names, nothing else changes
+      function isLeaving() {
+        return me() in resource.data.members
+          && request.resource.data.members.toSet() == resource.data.members.toSet().difference([me()].toSet())
+          && request.resource.data.members.size() == resource.data.members.size() - 1
+          && request.resource.data.name == resource.data.name
+          && request.resource.data.emoji == resource.data.emoji;
+      }
     }
 
     // ───── Group orders: who wants what, before the bill ─────
