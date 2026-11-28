@@ -124,6 +124,18 @@ export function createDemoBackend(): Backend {
       if (!g.members.length) store.groups = store.groups.filter((x) => x !== g);
       save();
     },
+    async removeGroupMember(groupId, phone) {
+      const g = store.groups.find((x) => x.id === groupId);
+      if (!me || !g || g.createdBy !== me || phone === me) throw new Error("permission-denied");
+      g.members = g.members.filter((p) => p !== phone);
+      const names = { ...g.names }; delete names[phone]; g.names = names;
+      save();
+    },
+    async deleteContact(phone) {
+      if (!me) throw new Error("not-signed-in");
+      store.contacts[me] = (store.contacts[me] ?? []).filter((c) => c.phone !== phone);
+      save();
+    },
     async deleteGroup(groupId) {
       const g = store.groups.find((x) => x.id === groupId);
       if (!me || !g || !(g.createdBy === me || (g.members.length === 1 && g.members[0] === me))) throw new Error("permission-denied");

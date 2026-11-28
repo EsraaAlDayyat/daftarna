@@ -99,6 +99,10 @@ export interface Backend {
   addGroupMember(groupId: string, c: Contact): Promise<void>;
   /** I leave: the group stays for the others. Entries already recorded stay as they are. */
   leaveGroup(groupId: string): Promise<void>;
+  /** The group's creator takes someone out. Their entries stay. */
+  removeGroupMember(groupId: string, phone: Phone): Promise<void>;
+  /** Forget a saved contact (only offered when there are no entries with them). */
+  deleteContact(phone: Phone): Promise<void>;
   /** Only whoever created it (or the last one in it): the group goes for everyone. Entries stay. */
   deleteGroup(groupId: string): Promise<void>;
   /** Group details from an invite link, before joining. null = link is wrong. */

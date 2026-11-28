@@ -10,6 +10,7 @@ import { Sheet } from "./Sheet";
 import { Arrow, Bell, Contacts, Dialpad, Handshake, Plus, Search, Share, UserPlus, Wallet, WhatsApp } from "./icons";
 import { IconTile } from "./IconTile";
 import { EmptyState } from "./EmptyState";
+import { DeleteToggle } from "./DeleteToggle";
 import { PayToggle } from "./PayToggle";
 import type { Friend } from "./model";
 import { canPickContacts, pickContacts } from "./contacts";
@@ -88,7 +89,11 @@ export function FriendsTab({ friends, onFriend, onAdd }: { friends: Friend[]; on
                   )}
                 </span>
               </span>
-              <span className="chev" aria-hidden="true">‹</span>
+              {f.saved && f.txns.length === 0
+                ? <DeleteToggle label={f.name} onConfirm={async () => {
+                    try { await backend.deleteContact(f.phone); toast(t.contactRemoved(f.name)); } catch { toast(t.tryAgain); }
+                  }} />
+                : <span className="chev" aria-hidden="true">‹</span>}
             </div>
           );
         })}

@@ -237,6 +237,14 @@ describe("group orders", () => {
     await assertSucceeds(deleteDoc(doc(as("s", S), "groups/g1")));
   });
 
+  it("the creator can take a member out; a member can't", async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), "groups/g2"), { name: "ب", emoji: "🍕", members: [S, A, L], names: { [S]: "س", [A]: "أ", [L]: "ل" }, createdBy: S, createdAt: new Date() });
+    });
+    await assertFails(updateDoc(doc(as("a", A), "groups/g2"), { members: [S, A], names: { [S]: "س", [A]: "أ" } }));
+    await assertSucceeds(updateDoc(doc(as("s", S), "groups/g2"), { members: [S, A], names: { [S]: "س", [A]: "أ" } }));
+  });
+
   it("a group member can start an order for the group", async () => {
     await seedGroup();
     await assertSucceeds(setDoc(doc(as("s", S), "orders/o1"), order()));

@@ -845,3 +845,17 @@ input, select, textarea { background: var(--sheet); }
 .link-btn.danger { color: var(--owe); }
 .confirm.danger-box { background: var(--owe-bg); }
 .btn.danger { background: var(--owe); color: #fff; }
+
+/* ───── Inline delete: trash icon → "تأكيد الحذف؟ ✓ ✕" ───── */
+.del-btn { flex: 0 0 auto; width: 34px; height: 34px; border: 0; border-radius: 10px; background: transparent; color: var(--ink-soft); display: grid; place-items: center; cursor: pointer; }
+.del-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.del-btn:active { background: var(--owe-bg); color: var(--owe); }
+.del-ask { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; background: var(--owe-bg); border-radius: 999px; padding: 3px 4px 3px 10px; animation: del-in .18s ease; }
+.del-q { font-size: 12.5px; color: var(--owe); white-space: nowrap; }
+.del-yes, .del-no { width: 28px; height: 28px; border: 0; border-radius: 50%; font: inherit; font-size: 14px; cursor: pointer; display: grid; place-items: center; }
+.del-yes { background: var(--owe); color: #fff; }
+.del-no { background: var(--paper); color: var(--ink-soft); }
+@keyframes del-in { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.row-wrap { display: flex; align-items: center; gap: 6px; }
+.row-wrap > .row { flex: 1; min-width: 0; }
+.frow.contact > .del-btn, .frow.contact > .del-ask, .frow.contact .del-ask * { pointer-events: auto; }

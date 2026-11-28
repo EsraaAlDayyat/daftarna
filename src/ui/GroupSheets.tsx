@@ -7,6 +7,7 @@ import { Avatar } from "./Avatar";
 import { Sheet } from "./Sheet";
 import { Cart, Plus, WhatsApp } from "./icons";
 import { IconTile } from "./IconTile";
+import { DeleteToggle } from "./DeleteToggle";
 import { groupBalance } from "./model";
 import { clearInvite, inviteLink } from "./invite";
 import { useT } from "./i18n";
@@ -151,14 +152,21 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onOperation, on
           const cls = bal > 0 ? "pos" : bal < 0 ? "neg" : "zero";
           const name = f?.name ?? g.names[p] ?? p;
           return (
-            <button key={p} className="row" onClick={() => onFriend(p)}>
-              <Avatar name={name} id={p} />
-              <span className="who"><b>{name}</b></span>
-              <span className={`bal num ${cls}`}>
-                {cls === "zero" ? t.settled : jod(Math.abs(bal))}
-                <small>{cls === "pos" ? t.owesMe : cls === "neg" ? t.iOweThem : ""}</small>
-              </span>
-            </button>
+            <div key={p} className="row-wrap">
+              <button className="row" onClick={() => onFriend(p)}>
+                <Avatar name={name} id={p} />
+                <span className="who"><b>{name}</b></span>
+                <span className={`bal num ${cls}`}>
+                  {cls === "zero" ? t.settled : jod(Math.abs(bal))}
+                  <small>{cls === "pos" ? t.owesMe : cls === "neg" ? t.iOweThem : ""}</small>
+                </span>
+              </button>
+              {g.createdBy === me && (
+                <DeleteToggle label={name} onConfirm={async () => {
+                  try { await backend.removeGroupMember(g.id, p); toast(t.memberRemoved(name)); } catch { toast(t.tryAgain); }
+                }} />
+              )}
+            </div>
           );
         })}
       </div>
@@ -170,10 +178,15 @@ export function GroupSheet({ id, onClose, onFriend, onAddMember, onOperation, on
             const filled = o.parties.filter((p) => o.lines[p]?.trim()).length;
             const outing = o.kind === "outing";
             return (
-              <button key={o.id} className="row" onClick={() => onOrder(o.id)}>
+              <div key={o.id} className="row-wrap">
+              <button className="row" onClick={() => onOrder(o.id)}>
                 <span className="g-emoji" aria-hidden="true">{outing ? "🏕️" : "🛒"}</span>
                 <span className="who"><b>{o.title}</b><span>{(outing ? t.outingFilled : t.orderFilled)(filled, o.parties.length)}</span></span>
               </button>
+                <DeleteToggle label={o.title} onConfirm={async () => {
+                  try { await backend.closeOrder(o.id); toast(t.orderRemoved); } catch { toast(t.tryAgain); }
+                }} />
+              </div>
             );
           })}
         </section>

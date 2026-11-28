@@ -153,6 +153,19 @@ export function createFirebaseBackend(config: FirebaseOptions, vapidKey: string 
         tx.update(ref, { members, names });
       });
     },
+    async removeGroupMember(groupId, phone) {
+      need();
+      const ref = doc(db, "groups", groupId);
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists()) return;
+        const g = snap.data();
+        const names = { ...(g.names ?? {}) };
+        delete names[phone];
+        tx.update(ref, { members: (g.members ?? []).filter((p: Phone) => p !== phone), names });
+      });
+    },
+    async deleteContact(phone) { const m = need(); await deleteDoc(doc(db, "users", m.uid, "contacts", phone)); },
     async deleteGroup(groupId) { need(); await deleteDoc(doc(db, "groups", groupId)); },
 
     watchOrders(cb) {

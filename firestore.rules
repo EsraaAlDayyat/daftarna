@@ -170,8 +170,8 @@ service cloud.firestore {
       allow update: if signedIn() && validGroup(request.resource.data)
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.createdAt == resource.data.createdAt
-        && (isLeaving() || request.resource.data.members.hasAll(resource.data.members))
-        && (isLeaving() || 
+        && (isLeaving() || isCreatorRemoving() || request.resource.data.members.hasAll(resource.data.members))
+        && (isLeaving() || isCreatorRemoving() || 
           // A member can add people and edit the group
           me() in resource.data.members
           // Someone with the link can only add themselves
@@ -182,6 +182,15 @@ service cloud.firestore {
         );
       // Whoever created it, or the last one still in it
       allow delete: if signedIn() && (resource.data.createdBy == me() || resource.data.members == [me()]);
+
+      // The creator takes others out (never themselves this way); nothing else changes
+      function isCreatorRemoving() {
+        return resource.data.createdBy == me()
+          && me() in request.resource.data.members
+          && resource.data.members.toSet().hasAll(request.resource.data.members.toSet())
+          && request.resource.data.name == resource.data.name
+          && request.resource.data.emoji == resource.data.emoji;
+      }
 
       // A member leaving: exactly me out of members and names, nothing else changes
       function isLeaving() {
